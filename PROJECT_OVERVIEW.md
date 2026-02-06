@@ -1,6 +1,6 @@
 # ArtsVision Monitor - Project Overview
 
-A complete Python port of the Lua-based ArtsVision theater monitoring system with enhanced web interface, webhook support, and multi-location monitoring.
+A Python web application for monitoring ArtsVision theater events with a web interface, webhook support, and multi-location monitoring.
 
 ## What's Included
 
@@ -54,20 +54,20 @@ artsvision-monitor/
     └── INTERFACE_GUIDE.md          # UI/UX documentation
 ```
 
-## Key Features vs Original Lua Version
+## Key Features
 
-| Feature | Lua Version | Python Version |
-|---------|-------------|----------------|
-| **Location Discovery** | Hardcoded 5 theaters | Auto-discovers all locations |
-| **Multiple Monitors** | Single display | Unlimited monitors |
-| **Interface** | Text output | Modern web dashboard |
-| **Real-time Updates** | Timer-based | WebSocket live updates |
-| **Webhooks** | Not available | Full HTTP POST/GET support |
-| **Remote Access** | Local only | Web-based, accessible anywhere |
-| **Data Storage** | In-memory | Persistent database |
-| **Configuration** | Hard-coded | Environment variables |
-| **Multi-user** | Single user | Multi-user web interface |
-| **Mobile Support** | No | Responsive design |
+| Feature | Details |
+|---------|---------|
+| **Location Discovery** | Auto-discovers all locations from API |
+| **Multiple Monitors** | Unlimited monitors |
+| **Interface** | Modern web dashboard |
+| **Real-time Updates** | WebSocket live updates |
+| **Webhooks** | Full HTTP POST/GET support |
+| **Remote Access** | Web-based, accessible anywhere |
+| **Data Storage** | Persistent database |
+| **Configuration** | Environment variables |
+| **Multi-user** | Multi-user web interface |
+| **Mobile Support** | Responsive design |
 
 ## Technology Stack
 
@@ -327,8 +327,7 @@ Possible additions (not yet implemented):
 
 ## License & Credits
 
-**Original Lua Version:** Theater status monitoring script  
-**Python Port:** Complete rewrite with web interface and enhancements
+**ArtsVision Monitor Dashboard** - Python web application with web interface and webhook support.
 
 This project interfaces with the ArtsVision API for theater management.
 

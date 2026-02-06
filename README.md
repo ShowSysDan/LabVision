@@ -12,7 +12,7 @@ A Python web application for monitoring ArtsVision theater events with real-time
 - 📊 **Event Timeline**: Shows current and upcoming events with countdowns
 - 🎨 **Modern UI**: Clean, responsive dashboard that works on all devices
 
-## Key Improvements Over Lua Version
+## Key Features
 
 - **No Hardcoded Locations**: All locations are discovered from the API automatically
 - **Multiple Monitors**: Track as many locations as you need on a single dashboard
