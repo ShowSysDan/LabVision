@@ -1,0 +1,55 @@
+ArtsVision Monitor - Complete File List
+========================================
+
+CORE APPLICATION (Python)
+--------------------------
+app.py                      - Main Flask application with API endpoints and WebSocket
+api_poller.py              - ArtsVision API polling and event processing
+models.py                  - Database models (Monitor, SystemState)
+config.py                  - Configuration settings
+
+FRONTEND
+--------
+templates/dashboard.html   - Main dashboard HTML template
+static/css/style.css       - Dashboard styling (responsive, modern design)
+static/js/dashboard.js     - Dashboard functionality and real-time updates
+
+CONFIGURATION
+-------------
+requirements.txt           - Python dependencies
+.env.example              - Environment variables template
+.gitignore                - Git ignore rules
+
+STARTUP SCRIPTS
+---------------
+run.sh                    - Linux/Mac startup script (executable)
+run.bat                   - Windows startup script
+
+DEPLOYMENT
+----------
+artsvision-monitor.service - systemd service file for Linux
+
+DOCUMENTATION
+-------------
+README.md                      - Complete documentation (installation, usage, deployment)
+QUICKSTART.md                  - 5-minute quick start guide
+PROJECT_OVERVIEW.md            - Project architecture and feature overview
+WEBHOOK_EXAMPLES.md            - Integration examples (Q-SYS, Crestron, Slack, Teams, etc.)
+INTERFACE_GUIDE.md             - UI/UX documentation with ASCII mockups
+CHANGELOG.md                   - Version history and improvements
+WINDOWS_SETUP_GUIDE.md         - Complete Windows setup and troubleshooting guide
+WINDOWS_TESTING_CHECKLIST.md  - Windows testing checklist (printable)
+SSL_CERTIFICATE_FIX.md         - Fix for SSL certificate errors (self-signed certs)
+FILES.txt                      - This file
+
+TOTAL FILES: 16 application files + 9 documentation files = 25 files
+
+QUICK START
+-----------
+1. Extract the archive
+2. Run ./run.sh (Linux/Mac) or run.bat (Windows)
+3. Edit .env with your API key
+4. Run the script again
+5. Open http://localhost:5000
+
+See QUICKSTART.md for detailed instructions.

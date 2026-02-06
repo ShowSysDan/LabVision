@@ -1,0 +1,52 @@
+# ArtsVision Monitor - Systemd Service File
+# 
+# Installation Instructions:
+# 1. Edit this file and replace:
+#    - YOUR_USERNAME with your actual username
+#    - /path/to/artsvision-monitor with the actual path
+#    - /path/to/venv with the actual virtual environment path
+# 
+# 2. Copy this file to systemd:
+#    sudo cp artsvision-monitor.service /etc/systemd/system/
+# 
+# 3. Reload systemd:
+#    sudo systemctl daemon-reload
+# 
+# 4. Enable the service (start on boot):
+#    sudo systemctl enable artsvision-monitor
+# 
+# 5. Start the service:
+#    sudo systemctl start artsvision-monitor
+# 
+# 6. Check status:
+#    sudo systemctl status artsvision-monitor
+# 
+# 7. View logs:
+#    sudo journalctl -u artsvision-monitor -f
+
+[Unit]
+Description=ArtsVision Monitor Dashboard
+After=network.target
+
+[Service]
+Type=simple
+User=YOUR_USERNAME
+Group=YOUR_USERNAME
+WorkingDirectory=/path/to/artsvision-monitor
+Environment="PATH=/path/to/venv/bin"
+ExecStart=/path/to/venv/bin/gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:5000 app:app
+
+# Restart policy
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+
+# Security settings (optional but recommended)
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
