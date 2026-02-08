@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, abort
 from flask_socketio import SocketIO, emit
 from apscheduler.schedulers.background import BackgroundScheduler
 from models import db, Monitor, SystemState
@@ -76,6 +76,32 @@ def index():
     return render_template('dashboard.html')
 
 
+@app.route('/display/<path:monitor_slug>')
+def display_page(monitor_slug):
+    """TV display output page for a monitor (1920x1080 optimized)"""
+    # Find monitor by slug (name lowercased with spaces replaced by hyphens)
+    monitors = Monitor.query.filter_by(display_enabled=True).all()
+    monitor = None
+    for m in monitors:
+        slug = m.name.lower().replace(' ', '-')
+        if slug == monitor_slug.lower():
+            monitor = m
+            break
+
+    if not monitor:
+        abort(404)
+
+    return render_template('display.html', monitor=monitor)
+
+
+@app.route('/api/display/<int:monitor_id>')
+def get_display_data(monitor_id):
+    """Get live display data for a monitor (used by display page polling)"""
+    monitor = Monitor.query.get_or_404(monitor_id)
+    data = monitor.to_dict()
+    return jsonify(data)
+
+
 # ============================================================================
 # API ENDPOINTS
 # ============================================================================
@@ -104,7 +130,10 @@ def create_monitor():
             webhook_method=data.get('webhook_method', 'POST'),
             webhook_body_template=data.get('webhook_body_template'),
             enabled=data.get('enabled', True),
-            order=Monitor.query.count()
+            order=Monitor.query.count(),
+            display_enabled=data.get('display_enabled', False),
+            no_event_text=data.get('no_event_text', 'No Event'),
+            show_countdown=data.get('show_countdown', True)
         )
         
         if data.get('webhook_headers'):
@@ -140,6 +169,9 @@ def update_monitor(monitor_id):
         monitor.webhook_method = data.get('webhook_method', monitor.webhook_method)
         monitor.webhook_body_template = data.get('webhook_body_template', monitor.webhook_body_template)
         monitor.enabled = data.get('enabled', monitor.enabled)
+        monitor.display_enabled = data.get('display_enabled', monitor.display_enabled)
+        monitor.no_event_text = data.get('no_event_text', monitor.no_event_text)
+        monitor.show_countdown = data.get('show_countdown', monitor.show_countdown)
         
         if 'webhook_headers' in data:
             monitor.set_webhook_headers(data['webhook_headers'])

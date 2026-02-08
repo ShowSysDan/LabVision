@@ -27,6 +27,11 @@ class Monitor(db.Model):
     # Display settings
     enabled = db.Column(db.Boolean, default=True)
     order = db.Column(db.Integer, default=0)
+
+    # TV Display output settings
+    display_enabled = db.Column(db.Boolean, default=False)
+    no_event_text = db.Column(db.String(200), default='No Event')
+    show_countdown = db.Column(db.Boolean, default=True)
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
@@ -46,7 +51,11 @@ class Monitor(db.Model):
             'next_event': json.loads(self.next_event) if self.next_event else None,
             'last_updated': self.last_updated.isoformat() if self.last_updated else None,
             'enabled': self.enabled,
-            'order': self.order
+            'order': self.order,
+            'display_enabled': self.display_enabled,
+            'no_event_text': self.no_event_text or 'No Event',
+            'show_countdown': self.show_countdown,
+            'display_slug': self.name.lower().replace(' ', '-') if self.name else ''
         }
     
     def set_webhook_headers(self, headers_dict):

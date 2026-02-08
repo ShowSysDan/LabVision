@@ -88,6 +88,11 @@ function setupEventListeners() {
     document.getElementById('webhookEnabled').addEventListener('change', function() {
         toggleWebhookSettings(this.checked);
     });
+
+    // Display enabled checkbox
+    document.getElementById('displayEnabled').addEventListener('change', function() {
+        toggleDisplaySettings(this.checked);
+    });
     
     // Form submit
     document.getElementById('monitorForm').addEventListener('submit', function(e) {
@@ -152,6 +157,10 @@ async function saveMonitor() {
         }
     }
     
+    const displayEnabled = document.getElementById('displayEnabled').checked;
+    const noEventText = document.getElementById('noEventText').value;
+    const showCountdown = document.getElementById('showCountdown').checked;
+
     const data = {
         name,
         location,
@@ -159,7 +168,10 @@ async function saveMonitor() {
         webhook_url: webhookUrl || null,
         webhook_method: webhookMethod,
         webhook_headers: parsedHeaders,
-        webhook_body_template: webhookBodyTemplate || null
+        webhook_body_template: webhookBodyTemplate || null,
+        display_enabled: displayEnabled,
+        no_event_text: noEventText || 'No Event',
+        show_countdown: showCountdown
     };
     
     try {
@@ -335,9 +347,16 @@ function createMonitorCard(monitor) {
         `;
     }
     
-    const webhookBadge = monitor.webhook_enabled ? 
+    const webhookBadge = monitor.webhook_enabled ?
         '<span class="webhook-badge">🔗 Webhook Enabled</span>' : '';
-    
+
+    const displaySlug = monitor.display_slug || monitor.name.toLowerCase().replace(/ /g, '-');
+    const displayLink = monitor.display_enabled ?
+        `<div class="display-link-section">
+            <span class="display-badge">📺 TV Display</span>
+            <a href="/display/${escapeHtml(displaySlug)}" target="_blank" class="display-url">/display/${escapeHtml(displaySlug)}</a>
+        </div>` : '';
+
     return `
         <div class="monitor-card" data-id="${monitor.id}">
             <div class="monitor-header">
@@ -355,21 +374,22 @@ function createMonitorCard(monitor) {
                     <span class="status-dot ${statusClass}"></span>
                     <span>${statusText}</span>
                 </div>
-                
+
                 <div class="event-section">
                     <h4>Current Event</h4>
                     ${currentEventHtml}
                 </div>
-                
+
                 <div class="event-section">
                     <h4>Next Event</h4>
                     ${nextEventHtml}
                 </div>
-                
+
                 ${webhookBadge}
-                ${monitor.webhook_enabled ? 
-                    `<button class="btn btn-sm btn-secondary" style="margin-top: 0.5rem;" onclick="testWebhook(${monitor.id})">Test Webhook</button>` : 
+                ${monitor.webhook_enabled ?
+                    `<button class="btn btn-sm btn-secondary" style="margin-top: 0.5rem;" onclick="testWebhook(${monitor.id})">Test Webhook</button>` :
                     ''}
+                ${displayLink}
             </div>
         </div>
     `;
@@ -400,16 +420,21 @@ function openMonitorModal(monitor = null) {
         document.getElementById('webhookEnabled').checked = monitor.webhook_enabled;
         document.getElementById('webhookUrl').value = monitor.webhook_url || '';
         document.getElementById('webhookMethod').value = monitor.webhook_method || 'POST';
-        document.getElementById('webhookHeaders').value = 
+        document.getElementById('webhookHeaders').value =
             monitor.webhook_headers ? JSON.stringify(monitor.webhook_headers, null, 2) : '';
         document.getElementById('webhookBodyTemplate').value = monitor.webhook_body_template || '';
-        
+        document.getElementById('displayEnabled').checked = monitor.display_enabled || false;
+        document.getElementById('noEventText').value = monitor.no_event_text || '';
+        document.getElementById('showCountdown').checked = monitor.show_countdown !== false;
+
         toggleWebhookSettings(monitor.webhook_enabled);
+        toggleDisplaySettings(monitor.display_enabled || false);
     } else {
         // Add mode
         document.getElementById('modalTitle').textContent = 'Add Monitor';
         document.getElementById('monitorId').value = '';
         toggleWebhookSettings(false);
+        toggleDisplaySettings(false);
     }
     
     modal.classList.add('show');
@@ -429,6 +454,11 @@ function editMonitor(id) {
 
 function toggleWebhookSettings(enabled) {
     const settings = document.getElementById('webhookSettings');
+    settings.style.display = enabled ? 'block' : 'none';
+}
+
+function toggleDisplaySettings(enabled) {
+    const settings = document.getElementById('displaySettings');
     settings.style.display = enabled ? 'block' : 'none';
 }
 

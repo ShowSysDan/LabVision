@@ -88,6 +88,34 @@
                     </div>
                 </div>
 
+                <div class="form-section">
+                    <h3>TV Display Output</h3>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="displayEnabled">
+                            Enable TV Display Page
+                        </label>
+                        <small>Creates a 1920x1080 output page at /display/monitor-name for use on TVs</small>
+                    </div>
+
+                    <div id="displaySettings" style="display: none;">
+                        <div class="form-group">
+                            <label for="noEventText">No Event Text</label>
+                            <input type="text" id="noEventText" placeholder="e.g., Dark, No Reservation, Available">
+                            <small>Text shown when there is no current event (e.g., "Dark" for a theater, "No Reservation" for a loading dock)</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="showCountdown" checked>
+                                Show Countdown to Next Event
+                            </label>
+                            <small>Shows "20min Till Reservation" style countdown when no event is active</small>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
                     <button type="submit" class="btn btn-primary">Save Monitor</button>
