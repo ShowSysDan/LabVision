@@ -1,330 +1,213 @@
 # ArtsVision Monitor Dashboard
 
-A Python web application for monitoring ArtsVision theater events with real-time status updates, webhook notifications, and a modern web interface.
+A Python web application for monitoring ArtsVision theater events with real-time status updates, TV display outputs, webhook notifications, and a modern web interface.
 
 ## Features
 
-- 🎭 **Multi-Monitor Dashboard**: Create unlimited monitors for different theater locations
-- 🔄 **Real-Time Updates**: WebSocket-powered live status updates
-- 📍 **Auto-Discovery**: Automatically discovers all locations from ArtsVision API
-- 🔔 **Webhook Support**: Configure HTTP POST/GET requests per monitor to integrate with other systems
-- ⏰ **Smart Activation**: Tracks pre-show and post-show windows
-- 📊 **Event Timeline**: Shows current and upcoming events with countdowns
-- 🎨 **Modern UI**: Clean, responsive dashboard that works on all devices
+- **Multi-Monitor Dashboard**: Create unlimited monitors for different theater locations
+- **Real-Time Updates**: WebSocket-powered live status updates
+- **TV Display Output**: 1920x1080 output pages for TVs near theaters/rooms
+- **Display Theme Editor**: Customize colors, text sizes, and behavior with live preview
+- **Auto-Discovery**: Automatically discovers all locations from ArtsVision API
+- **Webhook Support**: Configure HTTP POST/GET requests per monitor
+- **Smart Activation**: Tracks pre-show and post-show windows
+- **Event Timeline**: Shows current and upcoming events with countdowns
+- **All Settings in UI**: API key, polling intervals, and all configuration via the dashboard (no config files to edit)
+- **One-Command Install**: `sudo bash install.sh` sets up as a Debian/Ubuntu service
 
-## Key Features
+## Quick Start
 
-- **No Hardcoded Locations**: All locations are discovered from the API automatically
-- **Multiple Monitors**: Track as many locations as you need on a single dashboard
-- **Webhook Integration**: Send status updates to external systems (lighting, AV, etc.)
-- **Web Interface**: Access from any device with a browser
-- **Real-Time Updates**: Live status changes without page refresh
-- **Persistent Storage**: Monitor configurations saved in database
-
-## Requirements
-
-- Python 3.8+
-- Modern web browser
-
-## Installation
-
-### 1. Clone or Download
-
-Download this project to your server or computer.
-
-### 2. Install Dependencies
+### Option A: Install as a Service (Debian/Ubuntu - Recommended)
 
 ```bash
-cd artsvision-monitor
-pip install -r requirements.txt
+git clone <repo-url>
+cd ArtsVisionAPIPull
+sudo bash install.sh
 ```
 
-### 3. Configure
+This installs system dependencies, creates a virtual environment, installs Python packages, and sets up a systemd service that starts on boot and auto-restarts on crash.
 
-Copy the example environment file:
+After install, open `http://<your-ip>:5000` and click **Settings** to enter your API key.
+
+### Option B: Run Manually
 
 ```bash
-cp .env.example .env
+git clone <repo-url>
+cd ArtsVisionAPIPull
+bash run.sh
 ```
 
-Edit `.env` with your settings:
+Dashboard: `http://localhost:5000`
 
-```ini
-ARTSVISION_API_KEY=your-api-key-here
-ARTSVISION_API_URL=https://av2.artsvision.net/api/getdata
+### First-Time Setup
 
-# Polling: How often to check for new events (default: 30 minutes)
-API_POLL_INTERVAL=1800
+1. Open the dashboard in your browser
+2. Click **Settings** in the header
+3. Enter your ArtsVision API key and adjust settings as needed
+4. Click **Save Settings**
+5. Click **Refresh Now** to pull events immediately
+6. Click **+ Add Monitor** to start monitoring locations
 
-# Processing: How often to update monitor states (default: 60 seconds)
-PROCESS_INTERVAL=60
+## TV Display Output
 
-# Pre-show activation (default: 30 minutes before event)
-PRE_SHOW_MINUTES=30
+Each monitor can generate a 1920x1080 output page designed to be shown on a TV near a theater, loading dock, or room.
 
-# Post-show deactivation (default: 60 minutes after event)
-POST_SHOW_MINUTES=60
-```
+### Enabling TV Display
 
-### 4. Run
+1. Edit a monitor (pencil icon)
+2. Check **Enable TV Display Page**
+3. Set **No Event Text** - what to show when nothing is happening:
+   - `Dark` for a theater
+   - `No Reservation` for a meeting room
+   - `Available` for a loading dock
+4. Toggle **Show Countdown to Next Event** to display "20min Till Reservation" style countdowns
+5. Save - the display URL appears on the monitor card (e.g., `/display/main-theater`)
+
+### What the Display Shows
+
+**When active (event in progress):**
+- Green background with event name, time range, and "Ends in X" countdown
+- Long event names automatically scroll across the screen
+
+**When inactive (no event):**
+- Dark background with your custom no-event text
+- Optional countdown to next reservation
+
+### Display Theme Editor
+
+Click **Display Theme** in the dashboard header to open the theme editor at `/settings/display-theme`.
+
+Customize:
+- **Colors**: Active/inactive backgrounds, accents, text colors, countdown color
+- **Text Sizes**: Event name, time, no-event text, countdown, header, clock
+- **Labels**: Change "IN USE" / "AVAILABLE" badge text
+- **Scrolling**: Toggle auto-scroll for long event names
+- **Live Preview**: See changes in real-time before saving (toggle between Active/Inactive views)
+
+Theme changes apply globally to all TV display pages. Active displays reload the theme automatically every 5 minutes.
+
+## Application Settings
+
+All settings are configured through the dashboard UI (click **Settings**):
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| API Key | (empty) | Your ArtsVision API key |
+| API URL | `https://av2.artsvision.net/api/getdata` | ArtsVision API endpoint |
+| Verify SSL | On | Disable for self-signed certificates |
+| API Poll Interval | 1800s (30min) | How often to fetch events |
+| Process Interval | 60s | How often to re-evaluate monitor states |
+| Pre-Show Minutes | 30 | Activate monitor this many minutes before event |
+| Post-Show Minutes | 60 | Keep active this many minutes after event |
+| Filter Confirmed Only | On | Ignore tentative/canceled events |
+| Discovery Days | 90 | How far ahead to look for locations |
+
+Changes take effect on the next poll cycle without restarting the service.
+
+## Service Management
+
+After installing with `install.sh`:
 
 ```bash
-python app.py
+# Check status
+sudo systemctl status artsvision-monitor
+
+# Restart
+sudo systemctl restart artsvision-monitor
+
+# Stop
+sudo systemctl stop artsvision-monitor
+
+# View live logs
+sudo journalctl -u artsvision-monitor -f
+
+# View last 50 log lines
+sudo journalctl -u artsvision-monitor --no-pager -n 50
 ```
 
-The dashboard will be available at: `http://localhost:5000`
+The service:
+- Starts automatically on boot
+- Restarts automatically if it crashes (10s delay)
+- Runs as the user who installed it (not root)
 
-## Usage
+## Updating
 
-### Adding a Monitor
+To update to a new version:
 
-1. Click **"+ Add Monitor"** button
-2. Give it a descriptive name (e.g., "Walt Disney Theater Monitor")
-3. Select a location from the dropdown (auto-populated from API)
-4. Optionally configure webhooks (see below)
-5. Click **"Save Monitor"**
+```bash
+cd ArtsVisionAPIPull
+git pull
+sudo systemctl restart artsvision-monitor
+```
 
-### Monitor Status
+Your database (monitors, settings, theme) is preserved across updates - only code files are updated via git.
 
-Each monitor card shows:
-
-- **Status Indicator**: Green (ACTIVE) or Gray (Inactive) with pulsing dot
-- **Current Event**: Name, time range, and deactivation countdown
-- **Next Event**: Upcoming event with activation countdown
-- **Location**: The theater/space being monitored
-
-### Webhook Configuration
-
-Webhooks allow you to send HTTP requests to other systems when a monitor's status changes (active ↔ inactive).
-
-**Example Use Cases:**
-- Trigger lighting scenes
-- Activate AV equipment
-- Send notifications
-- Update building management systems
-- Log events to external databases
-
-**Configuration:**
-
-1. Enable webhook checkbox
-2. Enter webhook URL (e.g., `https://your-system.com/api/status`)
-3. Choose method: POST or GET
-4. (Optional) Add custom headers as JSON:
-   ```json
-   {
-     "Authorization": "Bearer your-token",
-     "Content-Type": "application/json"
-   }
-   ```
-5. (Optional) Add body template for POST requests:
-   ```
-   {
-     "location": "{location}",
-     "active": {is_active},
-     "event_name": "{current_event}"
-   }
-   ```
-
-**Available Template Variables:**
-- `{monitor_id}` - Monitor ID number
-- `{monitor_name}` - Monitor display name
-- `{location}` - Location name
-- `{is_active}` - true/false active status
-- `{current_event}` - Current event object (if any)
-- `{next_event}` - Next event object (if any)
-- `{timestamp}` - ISO timestamp of the change
-
-**Testing Webhooks:**
-
-Click the **"Test Webhook"** button to manually trigger the webhook and verify it's working.
-
-## Architecture
-
-### File Structure
+## File Structure
 
 ```
-artsvision-monitor/
-├── app.py                 # Main Flask application
-├── api_poller.py          # ArtsVision API polling logic
-├── models.py              # Database models
-├── config.py              # Configuration
-├── requirements.txt       # Python dependencies
-├── .env                   # Environment variables (create from .env.example)
+ArtsVisionAPIPull/
+├── app.py                          # Flask application and routes
+├── api_poller.py                   # ArtsVision API polling logic
+├── models.py                       # Database models (Monitor, SystemState)
+├── config.py                       # Flask config and setting defaults
+├── requirements.txt                # Python dependencies
+├── install.sh                      # One-command Debian service installer
+├── run.sh                          # Manual startup script
+├── artsvision-monitor.service      # Systemd service template (reference)
 ├── static/
-│   ├── css/
-│   │   └── style.css     # Dashboard styles
-│   └── js/
-│       └── dashboard.js  # Frontend logic
-└── templates/
-    └── dashboard.html    # Dashboard HTML
+│   ├── css/style.css               # Dashboard styles
+│   └── js/dashboard.js             # Dashboard JavaScript
+├── templates/
+│   ├── dashboard.html              # Main dashboard
+│   ├── display.html                # TV display output page (1920x1080)
+│   └── display_theme_editor.html   # Display theme editor with preview
+└── instance/
+    └── artsvision_monitors.db      # SQLite database (auto-created, not in git)
 ```
-
-### How It Works
-
-1. **API Polling**: Every 30 minutes (configurable), polls ArtsVision API for today's events
-2. **Event Processing**: Filters and processes events, discovering all locations
-3. **Monitor Updates**: Every 60 seconds (configurable), checks each monitor's location against cached events
-4. **Status Calculation**: Determines if monitor should be active based on:
-   - Current time
-   - Event start time - PRE_SHOW_MINUTES
-   - Event end time + POST_SHOW_MINUTES
-5. **Real-Time Sync**: WebSocket pushes updates to all connected browsers
-6. **Webhook Triggers**: HTTP requests sent when monitor status changes
-
-### Database
-
-Uses SQLite by default (lightweight, no setup required). Tables:
-
-- **monitor**: Monitor configurations and current state
-- **system_state**: Cached API data and system settings
 
 ## API Endpoints
 
-If you want to integrate programmatically:
-
-- `GET /api/monitors` - Get all monitors
+### Monitors
+- `GET /api/monitors` - List all monitors
 - `POST /api/monitors` - Create monitor
 - `PUT /api/monitors/<id>` - Update monitor
 - `DELETE /api/monitors/<id>` - Delete monitor
-- `GET /api/locations` - Get discovered locations
-- `GET /api/schema` - Get ArtsVision API schema (entities and Event fields)
-- `POST /api/refresh` - Manual API refresh
-- `POST /api/test-webhook/<id>` - Test webhook
+- `POST /api/test-webhook/<id>` - Test a monitor's webhook
 
-### Schema Discovery
+### Display
+- `GET /display/<monitor-slug>` - TV display page for a monitor
+- `GET /api/display/<id>` - Display data JSON for a monitor
 
-The application automatically discovers the ArtsVision API schema on startup:
+### Settings
+- `GET /api/settings` - Get application settings
+- `PUT /api/settings` - Update application settings
+- `GET /api/settings/display-theme` - Get display theme
+- `PUT /api/settings/display-theme` - Update display theme
+- `POST /api/settings/display-theme/reset` - Reset theme to defaults
 
-```bash
-# View discovered schema
-curl http://localhost:5000/api/schema
-```
-
-This returns:
-- All available entities (Event, Project, Resource, etc.)
-- Event entity field definitions (names and types)
-- Whether entities allow updates
-
-This helps adapt to API changes and understand available data.
-
-## Deployment
-
-### Production Recommendations
-
-1. **Use a production WSGI server** (not Flask's built-in dev server):
-   ```bash
-   pip install gunicorn eventlet
-   gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:5000 app:app
-   ```
-
-2. **Set a secure SECRET_KEY** in `.env`
-
-3. **Use PostgreSQL** for production (optional):
-   ```ini
-   DATABASE_URL=postgresql://user:pass@localhost/artsvision_monitors
-   ```
-
-4. **Set up as a system service** (systemd on Linux):
-
-   Create `/etc/systemd/system/artsvision-monitor.service`:
-   ```ini
-   [Unit]
-   Description=ArtsVision Monitor Dashboard
-   After=network.target
-
-   [Service]
-   User=www-data
-   WorkingDirectory=/path/to/artsvision-monitor
-   Environment="PATH=/path/to/venv/bin"
-   ExecStart=/path/to/venv/bin/gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:5000 app:app
-
-   [Install]
-   WantedBy=multi-user.target
-   ```
-
-   Enable and start:
-   ```bash
-   sudo systemctl enable artsvision-monitor
-   sudo systemctl start artsvision-monitor
-   ```
-
-5. **Reverse proxy with Nginx** (optional):
-   ```nginx
-   server {
-       listen 80;
-       server_name your-domain.com;
-
-       location / {
-           proxy_pass http://127.0.0.1:5000;
-           proxy_http_version 1.1;
-           proxy_set_header Upgrade $http_upgrade;
-           proxy_set_header Connection "upgrade";
-           proxy_set_header Host $host;
-       }
-   }
-   ```
+### Other
+- `GET /api/locations` - Discovered locations
+- `GET /api/schema` - ArtsVision API schema
+- `POST /api/refresh` - Trigger manual API poll
 
 ## Troubleshooting
 
-### No locations showing up
-
-- Check that API_KEY is correct in `.env`
-- Verify API_URL is accessible
-- Check logs for API errors
-- Click "Refresh Now" to force immediate poll
-- View `/api/schema` to see if Event fields were discovered
-
-### Webhook not firing
-
-- Click "Test Webhook" to verify configuration
-- Check webhook URL is accessible
-- Verify headers are valid JSON
-- Check server logs for errors
+### No locations in dropdown
+- Open **Settings** and verify your API key is correct
+- Click **Refresh Now**
+- Check logs: `sudo journalctl -u artsvision-monitor -f`
 
 ### Monitor not activating
-
-- Verify event has "Confirmed" status in ArtsVision
-- Check PRE_SHOW_MINUTES and POST_SHOW_MINUTES settings
+- Verify the event has "Confirmed" status in ArtsVision
+- Check Pre-Show and Post-Show minutes in Settings
 - Ensure event has valid start/end times
-- Check that location name matches exactly
-- View `/api/schema` to verify field names (e.g., "Start Time" vs "IN Time")
 
-### Field mapping issues
+### TV display not updating
+- Check the connection indicator in the bottom-right corner of the display
+- The display auto-reconnects and polls every 2 minutes as a fallback
+- Theme changes take up to 5 minutes to appear on active displays
 
-If events aren't being detected correctly:
-1. Visit `http://localhost:5000/api/schema`
-2. Check the Event fields to see exact field names
-3. Look for Start/End time fields, Location, Project name
-4. Check server logs for field mapping warnings
-
-## Customization
-
-### Adjust Timing Windows
-
-Edit in `.env`:
-```ini
-PRE_SHOW_MINUTES=45    # Activate 45 minutes before show
-POST_SHOW_MINUTES=90   # Deactivate 90 minutes after show
-```
-
-### Change Polling Frequency
-
-```ini
-API_POLL_INTERVAL=900   # Poll every 15 minutes
-PROCESS_INTERVAL=30     # Update monitors every 30 seconds
-```
-
-### Custom Styling
-
-Edit `static/css/style.css` to customize colors, fonts, layout, etc.
-
-## License
-
-This project is provided as-is for use with ArtsVision theater management systems.
-
-## Support
-
-For issues or questions, please check:
-1. This README
-2. Application logs (console output)
-3. Browser console (F12) for frontend errors
+### Webhook not firing
+- Click **Test Webhook** on the monitor card
+- Check that the webhook URL is reachable from the server
+- Review logs for error details

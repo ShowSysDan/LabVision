@@ -27,3 +27,23 @@ DEFAULT_APP_SETTINGS = {
     'filter_confirmed_only': True,
     'location_discovery_days': 90,
 }
+
+# Default display theme (stored in database via SystemState as 'display_theme')
+DEFAULT_DISPLAY_THEME = {
+    'active_bg': '#064e3b',
+    'active_accent': '#10b981',
+    'inactive_bg': '#1e293b',
+    'inactive_accent': '#64748b',
+    'text_color': '#f8fafc',
+    'text_dim': '#94a3b8',
+    'countdown_color': '#fbbf24',
+    'event_name_size': 96,
+    'event_time_size': 48,
+    'no_event_text_size': 120,
+    'countdown_size': 72,
+    'header_name_size': 36,
+    'clock_size': 28,
+    'scroll_long_names': True,
+    'active_label': 'IN USE',
+    'inactive_label': 'AVAILABLE',
+}

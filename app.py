@@ -1,9 +1,9 @@
 from flask import Flask, render_template, request, jsonify, abort
 from flask_socketio import SocketIO, emit
 from apscheduler.schedulers.background import BackgroundScheduler
-from models import db, Monitor, SystemState, get_app_settings, save_app_settings
+from models import db, Monitor, SystemState, get_app_settings, save_app_settings, get_display_theme, save_display_theme
 from api_poller import ArtsVisionPoller
-from config import Config, DEFAULT_APP_SETTINGS
+from config import Config, DEFAULT_APP_SETTINGS, DEFAULT_DISPLAY_THEME
 import logging
 import json
 from datetime import datetime
@@ -111,6 +111,12 @@ def get_display_data(monitor_id):
     monitor = Monitor.query.get_or_404(monitor_id)
     data = monitor.to_dict()
     return jsonify(data)
+
+
+@app.route('/settings/display-theme')
+def display_theme_editor():
+    """Display theme editor page with live preview"""
+    return render_template('display_theme_editor.html')
 
 
 # ============================================================================
@@ -331,6 +337,49 @@ def update_settings():
 
     except Exception as e:
         logger.error(f"Error updating settings: {str(e)}", exc_info=True)
+        return jsonify({'error': str(e)}), 400
+
+
+# ============================================================================
+# DISPLAY THEME API
+# ============================================================================
+
+@app.route('/api/settings/display-theme', methods=['GET'])
+def get_display_theme_settings():
+    """Get display theme settings"""
+    theme = get_display_theme()
+    return jsonify(theme)
+
+
+@app.route('/api/settings/display-theme', methods=['PUT'])
+def update_display_theme():
+    """Update display theme settings"""
+    data = request.json
+
+    try:
+        current = get_display_theme()
+        for key in DEFAULT_DISPLAY_THEME:
+            if key in data:
+                current[key] = data[key]
+        save_display_theme(current)
+
+        logger.info("Display theme updated")
+        return jsonify({'status': 'success', 'message': 'Theme saved'})
+
+    except Exception as e:
+        logger.error(f"Error updating display theme: {str(e)}", exc_info=True)
+        return jsonify({'error': str(e)}), 400
+
+
+@app.route('/api/settings/display-theme/reset', methods=['POST'])
+def reset_display_theme():
+    """Reset display theme to defaults"""
+    try:
+        save_display_theme(DEFAULT_DISPLAY_THEME)
+        logger.info("Display theme reset to defaults")
+        return jsonify(DEFAULT_DISPLAY_THEME)
+    except Exception as e:
+        logger.error(f"Error resetting display theme: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 400
 
 

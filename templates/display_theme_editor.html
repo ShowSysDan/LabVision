@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Display Theme Editor - ArtsVision Monitor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .editor-layout {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 2rem;
+            min-height: calc(100vh - 120px);
+        }
+
+        .editor-sidebar {
+            background: var(--card-bg);
+            border-radius: 0.5rem;
+            box-shadow: var(--shadow);
+            overflow-y: auto;
+            max-height: calc(100vh - 120px);
+            position: sticky;
+            top: 2rem;
+        }
+
+        .editor-sidebar h2 {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 1.25rem;
+            margin: 0;
+        }
+
+        .editor-sidebar form {
+            padding: 1.25rem 1.5rem;
+        }
+
+        .editor-sidebar .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .editor-sidebar .form-group label {
+            font-size: 0.8rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .editor-sidebar .form-group input[type="number"] {
+            width: 100%;
+            padding: 0.375rem 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            font-size: 0.8rem;
+        }
+
+        .editor-sidebar .form-group input[type="text"] {
+            width: 100%;
+            padding: 0.375rem 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            font-size: 0.8rem;
+        }
+
+        .color-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .color-row input[type="color"] {
+            width: 36px;
+            height: 30px;
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            cursor: pointer;
+            padding: 1px;
+        }
+
+        .color-row input[type="text"] {
+            flex: 1;
+            font-family: monospace;
+            font-size: 0.8rem !important;
+        }
+
+        .settings-section {
+            padding-top: 1rem;
+            margin-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .settings-section h3 {
+            font-size: 0.95rem;
+            margin-bottom: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+
+        .editor-actions {
+            display: flex;
+            gap: 0.5rem;
+            padding-top: 1.25rem;
+            margin-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .editor-actions .btn { flex: 1; text-align: center; }
+
+        /* Preview area */
+        .preview-area {
+            background: #111;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .preview-label {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            z-index: 10;
+        }
+
+        .preview-toggle {
+            position: absolute;
+            top: 0.75rem;
+            left: 0.75rem;
+            z-index: 10;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .preview-toggle .btn {
+            opacity: 0.8;
+            font-size: 0.75rem;
+            padding: 0.3rem 0.75rem;
+        }
+
+        .preview-toggle .btn.active-btn {
+            opacity: 1;
+            box-shadow: 0 0 0 2px #fff;
+        }
+
+        /* Preview scaled display */
+        .preview-scaler {
+            transform-origin: top left;
+            width: 1920px;
+            height: 1080px;
+        }
+
+        /* The display preview reuses the TV display styles inline */
+        .preview-display {
+            width: 1920px;
+            height: 1080px;
+            display: flex;
+            flex-direction: column;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            transition: background-color 0.4s ease;
+            overflow: hidden;
+        }
+
+        .preview-display .pv-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 30px 60px;
+            border-bottom: 3px solid rgba(255,255,255,0.1);
+        }
+
+        .preview-display .pv-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px;
+            text-align: center;
+        }
+
+        .preview-display .pv-footer {
+            padding: 20px 60px;
+            border-top: 3px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pv-status-badge {
+            padding: 12px 36px;
+            border-radius: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .pv-event-name {
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 40px;
+            max-width: 1600px;
+        }
+
+        .pv-event-name.scrolling {
+            animation: scrollText 12s linear infinite;
+            white-space: nowrap;
+            max-width: none;
+        }
+
+        @keyframes scrollText {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        .pv-no-event-text {
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 50px;
+        }
+
+        @media (max-width: 1200px) {
+            .editor-layout {
+                grid-template-columns: 1fr;
+            }
+            .editor-sidebar {
+                position: static;
+                max-height: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📺 Display Theme Editor</h1>
+            <div class="header-actions">
+                <a href="/" class="btn btn-secondary">← Back to Dashboard</a>
+            </div>
+        </header>
+
+        <div class="editor-layout">
+            <!-- Settings Sidebar -->
+            <div class="editor-sidebar">
+                <h2>Theme Settings</h2>
+                <form id="themeForm">
+                    <div class="settings-section" style="margin-top:0; padding-top:0; border-top:none;">
+                        <h3>Colors - Active State</h3>
+                        <div class="form-group">
+                            <label>Background</label>
+                            <div class="color-row">
+                                <input type="color" id="activeBgPicker" value="#064e3b">
+                                <input type="text" id="activeBg" value="#064e3b">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Accent / Badge</label>
+                            <div class="color-row">
+                                <input type="color" id="activeAccentPicker" value="#10b981">
+                                <input type="text" id="activeAccent" value="#10b981">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>Colors - Inactive State</h3>
+                        <div class="form-group">
+                            <label>Background</label>
+                            <div class="color-row">
+                                <input type="color" id="inactiveBgPicker" value="#1e293b">
+                                <input type="text" id="inactiveBg" value="#1e293b">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Accent / Badge</label>
+                            <div class="color-row">
+                                <input type="color" id="inactiveAccentPicker" value="#64748b">
+                                <input type="text" id="inactiveAccent" value="#64748b">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>Colors - Text</h3>
+                        <div class="form-group">
+                            <label>Primary Text</label>
+                            <div class="color-row">
+                                <input type="color" id="textColorPicker" value="#f8fafc">
+                                <input type="text" id="textColor" value="#f8fafc">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Dimmed Text</label>
+                            <div class="color-row">
+                                <input type="color" id="textDimPicker" value="#94a3b8">
+                                <input type="text" id="textDim" value="#94a3b8">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Countdown Text</label>
+                            <div class="color-row">
+                                <input type="color" id="countdownColorPicker" value="#fbbf24">
+                                <input type="text" id="countdownColor" value="#fbbf24">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>Text Sizes (px)</h3>
+                        <div class="form-group">
+                            <label>Event Name</label>
+                            <input type="number" id="eventNameSize" min="24" max="200" value="96">
+                        </div>
+                        <div class="form-group">
+                            <label>Event Time</label>
+                            <input type="number" id="eventTimeSize" min="16" max="120" value="48">
+                        </div>
+                        <div class="form-group">
+                            <label>No-Event Text</label>
+                            <input type="number" id="noEventTextSize" min="24" max="240" value="120">
+                        </div>
+                        <div class="form-group">
+                            <label>Countdown</label>
+                            <input type="number" id="countdownSize" min="16" max="160" value="72">
+                        </div>
+                        <div class="form-group">
+                            <label>Header Name</label>
+                            <input type="number" id="headerNameSize" min="16" max="80" value="36">
+                        </div>
+                        <div class="form-group">
+                            <label>Clock</label>
+                            <input type="number" id="clockSize" min="12" max="60" value="28">
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>Labels</h3>
+                        <div class="form-group">
+                            <label>Active Label</label>
+                            <input type="text" id="activeLabel" value="IN USE">
+                        </div>
+                        <div class="form-group">
+                            <label>Inactive Label</label>
+                            <input type="text" id="inactiveLabel" value="AVAILABLE">
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>Behavior</h3>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="scrollLongNames" checked>
+                                Scroll long event names
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="editor-actions">
+                        <button type="submit" class="btn btn-primary">Save Theme</button>
+                        <button type="button" id="resetBtn" class="btn btn-danger">Reset Defaults</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Live Preview -->
+            <div class="preview-area" id="previewArea">
+                <div class="preview-label">LIVE PREVIEW (scaled)</div>
+                <div class="preview-toggle">
+                    <button class="btn btn-primary active-btn" id="showActiveBtn" onclick="setPreviewMode('active')">Active</button>
+                    <button class="btn btn-secondary" id="showInactiveBtn" onclick="setPreviewMode('inactive')">Inactive</button>
+                </div>
+
+                <div class="preview-scaler" id="previewScaler">
+                    <div class="preview-display" id="previewDisplay">
+                        <!-- Header -->
+                        <div class="pv-header">
+                            <div>
+                                <div id="pvMonitorName" style="font-weight:600; letter-spacing:0.02em;">Main Theater Monitor</div>
+                                <div id="pvLocationName">Mainstage Theater</div>
+                            </div>
+                            <div class="pv-status-badge" id="pvStatusBadge">IN USE</div>
+                        </div>
+
+                        <!-- Main content -->
+                        <div class="pv-main">
+                            <!-- Active state -->
+                            <div id="pvActiveContent">
+                                <div class="pv-event-name" id="pvEventName">The Phantom of the Opera - Evening Performance</div>
+                                <div id="pvEventTime">7:30 PM - 10:00 PM</div>
+                                <div id="pvEventDeactivation">Ends in 2h 15min</div>
+                            </div>
+
+                            <!-- Inactive state (hidden by default) -->
+                            <div id="pvInactiveContent" style="display:none;">
+                                <div class="pv-no-event-text" id="pvNoEventText">DARK</div>
+                                <div>
+                                    <div id="pvCountdownLabel" style="margin-bottom:20px;">Next Reservation</div>
+                                    <div id="pvCountdownTime" style="font-weight:700; margin-bottom:20px;">45min Till Reservation</div>
+                                    <div id="pvNextEventName">Company Meeting at 2:00 PM</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="pv-footer">
+                            <div id="pvClock" style="font-weight:500; font-variant-numeric:tabular-nums;">2:45:30 PM  |  Saturday, February 8, 2026</div>
+                            <div style="font-size:18px;">
+                                <span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:#10b981; margin-right:8px; vertical-align:middle;"></span>
+                                Connected
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let previewMode = 'active';
+
+        // =====================================================================
+        // Color Picker Sync
+        // =====================================================================
+        const colorFields = [
+            ['activeBg', 'activeBgPicker'],
+            ['activeAccent', 'activeAccentPicker'],
+            ['inactiveBg', 'inactiveBgPicker'],
+            ['inactiveAccent', 'inactiveAccentPicker'],
+            ['textColor', 'textColorPicker'],
+            ['textDim', 'textDimPicker'],
+            ['countdownColor', 'countdownColorPicker'],
+        ];
+
+        colorFields.forEach(([textId, pickerId]) => {
+            const text = document.getElementById(textId);
+            const picker = document.getElementById(pickerId);
+            picker.addEventListener('input', () => { text.value = picker.value; updatePreview(); });
+            text.addEventListener('input', () => {
+                if (/^#[0-9a-fA-F]{6}$/.test(text.value)) { picker.value = text.value; }
+                updatePreview();
+            });
+        });
+
+        // All other inputs trigger preview update
+        document.querySelectorAll('#themeForm input[type="number"], #themeForm input[type="text"], #themeForm input[type="checkbox"]').forEach(el => {
+            el.addEventListener('input', updatePreview);
+        });
+
+        // =====================================================================
+        // Preview Scaling
+        // =====================================================================
+        function scalePreview() {
+            const area = document.getElementById('previewArea');
+            const scaler = document.getElementById('previewScaler');
+            const availableWidth = area.clientWidth;
+            const availableHeight = area.clientHeight || (window.innerHeight - 120);
+            const scaleX = availableWidth / 1920;
+            const scaleY = availableHeight / 1080;
+            const scale = Math.min(scaleX, scaleY, 1);
+            scaler.style.transform = 'scale(' + scale + ')';
+            // Set container height so it fits
+            area.style.height = Math.floor(1080 * scale) + 'px';
+        }
+
+        window.addEventListener('resize', scalePreview);
+
+        // =====================================================================
+        // Preview Mode Toggle
+        // =====================================================================
+        function setPreviewMode(mode) {
+            previewMode = mode;
+            document.getElementById('showActiveBtn').className = 'btn ' + (mode === 'active' ? 'btn-primary active-btn' : 'btn-secondary');
+            document.getElementById('showInactiveBtn').className = 'btn ' + (mode === 'inactive' ? 'btn-primary active-btn' : 'btn-secondary');
+            updatePreview();
+        }
+
+        // =====================================================================
+        // Live Preview Update
+        // =====================================================================
+        function updatePreview() {
+            const display = document.getElementById('previewDisplay');
+            const badge = document.getElementById('pvStatusBadge');
+            const activeContent = document.getElementById('pvActiveContent');
+            const inactiveContent = document.getElementById('pvInactiveContent');
+
+            // Read values
+            const activeBg = document.getElementById('activeBg').value;
+            const activeAccent = document.getElementById('activeAccent').value;
+            const inactiveBg = document.getElementById('inactiveBg').value;
+            const inactiveAccent = document.getElementById('inactiveAccent').value;
+            const textColor = document.getElementById('textColor').value;
+            const textDim = document.getElementById('textDim').value;
+            const countdownColor = document.getElementById('countdownColor').value;
+
+            const eventNameSize = document.getElementById('eventNameSize').value + 'px';
+            const eventTimeSize = document.getElementById('eventTimeSize').value + 'px';
+            const noEventTextSize = document.getElementById('noEventTextSize').value + 'px';
+            const countdownSize = document.getElementById('countdownSize').value + 'px';
+            const headerNameSize = document.getElementById('headerNameSize').value + 'px';
+            const clockSize = document.getElementById('clockSize').value + 'px';
+
+            const activeLabel = document.getElementById('activeLabel').value || 'IN USE';
+            const inactiveLabel = document.getElementById('inactiveLabel').value || 'AVAILABLE';
+            const scrollLong = document.getElementById('scrollLongNames').checked;
+
+            // Apply colors
+            display.style.color = textColor;
+
+            if (previewMode === 'active') {
+                display.style.background = activeBg;
+                badge.style.background = activeAccent;
+                badge.style.color = activeBg;
+                badge.textContent = activeLabel;
+                activeContent.style.display = 'block';
+                inactiveContent.style.display = 'none';
+            } else {
+                display.style.background = inactiveBg;
+                badge.style.background = inactiveAccent;
+                badge.style.color = inactiveBg;
+                badge.textContent = inactiveLabel;
+                activeContent.style.display = 'none';
+                inactiveContent.style.display = 'block';
+            }
+
+            // Apply sizes
+            document.getElementById('pvMonitorName').style.fontSize = headerNameSize;
+            document.getElementById('pvLocationName').style.fontSize = (parseInt(headerNameSize) * 0.67) + 'px';
+            document.getElementById('pvLocationName').style.color = textDim;
+            badge.style.fontSize = '24px';
+
+            const eventNameEl = document.getElementById('pvEventName');
+            eventNameEl.style.fontSize = eventNameSize;
+            eventNameEl.style.color = textColor;
+            if (scrollLong) {
+                eventNameEl.classList.add('scrolling');
+            } else {
+                eventNameEl.classList.remove('scrolling');
+                eventNameEl.style.wordWrap = 'break-word';
+                eventNameEl.style.maxWidth = '1600px';
+            }
+
+            document.getElementById('pvEventTime').style.fontSize = eventTimeSize;
+            document.getElementById('pvEventTime').style.color = textDim;
+            document.getElementById('pvEventDeactivation').style.fontSize = (parseInt(eventTimeSize) * 0.67) + 'px';
+            document.getElementById('pvEventDeactivation').style.color = countdownColor;
+
+            document.getElementById('pvNoEventText').style.fontSize = noEventTextSize;
+            document.getElementById('pvNoEventText').style.color = textDim;
+
+            document.getElementById('pvCountdownLabel').style.fontSize = (parseInt(countdownSize) * 0.5) + 'px';
+            document.getElementById('pvCountdownLabel').style.color = textDim;
+            document.getElementById('pvCountdownTime').style.fontSize = countdownSize;
+            document.getElementById('pvCountdownTime').style.color = countdownColor;
+            document.getElementById('pvNextEventName').style.fontSize = (parseInt(countdownSize) * 0.5) + 'px';
+            document.getElementById('pvNextEventName').style.color = textDim;
+
+            document.getElementById('pvClock').style.fontSize = clockSize;
+        }
+
+        // =====================================================================
+        // Load / Save / Reset
+        // =====================================================================
+        async function loadTheme() {
+            try {
+                const response = await fetch('/api/settings/display-theme');
+                const theme = await response.json();
+
+                document.getElementById('activeBg').value = theme.active_bg || '#064e3b';
+                document.getElementById('activeBgPicker').value = theme.active_bg || '#064e3b';
+                document.getElementById('activeAccent').value = theme.active_accent || '#10b981';
+                document.getElementById('activeAccentPicker').value = theme.active_accent || '#10b981';
+                document.getElementById('inactiveBg').value = theme.inactive_bg || '#1e293b';
+                document.getElementById('inactiveBgPicker').value = theme.inactive_bg || '#1e293b';
+                document.getElementById('inactiveAccent').value = theme.inactive_accent || '#64748b';
+                document.getElementById('inactiveAccentPicker').value = theme.inactive_accent || '#64748b';
+                document.getElementById('textColor').value = theme.text_color || '#f8fafc';
+                document.getElementById('textColorPicker').value = theme.text_color || '#f8fafc';
+                document.getElementById('textDim').value = theme.text_dim || '#94a3b8';
+                document.getElementById('textDimPicker').value = theme.text_dim || '#94a3b8';
+                document.getElementById('countdownColor').value = theme.countdown_color || '#fbbf24';
+                document.getElementById('countdownColorPicker').value = theme.countdown_color || '#fbbf24';
+
+                document.getElementById('eventNameSize').value = theme.event_name_size || 96;
+                document.getElementById('eventTimeSize').value = theme.event_time_size || 48;
+                document.getElementById('noEventTextSize').value = theme.no_event_text_size || 120;
+                document.getElementById('countdownSize').value = theme.countdown_size || 72;
+                document.getElementById('headerNameSize').value = theme.header_name_size || 36;
+                document.getElementById('clockSize').value = theme.clock_size || 28;
+
+                document.getElementById('activeLabel').value = theme.active_label || 'IN USE';
+                document.getElementById('inactiveLabel').value = theme.inactive_label || 'AVAILABLE';
+                document.getElementById('scrollLongNames').checked = theme.scroll_long_names !== false;
+
+                updatePreview();
+            } catch (e) {
+                console.error('Error loading theme:', e);
+            }
+        }
+
+        document.getElementById('themeForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const data = {
+                active_bg: document.getElementById('activeBg').value,
+                active_accent: document.getElementById('activeAccent').value,
+                inactive_bg: document.getElementById('inactiveBg').value,
+                inactive_accent: document.getElementById('inactiveAccent').value,
+                text_color: document.getElementById('textColor').value,
+                text_dim: document.getElementById('textDim').value,
+                countdown_color: document.getElementById('countdownColor').value,
+                event_name_size: parseInt(document.getElementById('eventNameSize').value),
+                event_time_size: parseInt(document.getElementById('eventTimeSize').value),
+                no_event_text_size: parseInt(document.getElementById('noEventTextSize').value),
+                countdown_size: parseInt(document.getElementById('countdownSize').value),
+                header_name_size: parseInt(document.getElementById('headerNameSize').value),
+                clock_size: parseInt(document.getElementById('clockSize').value),
+                active_label: document.getElementById('activeLabel').value,
+                inactive_label: document.getElementById('inactiveLabel').value,
+                scroll_long_names: document.getElementById('scrollLongNames').checked,
+            };
+
+            try {
+                const response = await fetch('/api/settings/display-theme', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (response.ok) {
+                    alert('Theme saved! Active display pages will use these settings on their next refresh.');
+                } else {
+                    const err = await response.json();
+                    alert('Error: ' + (err.error || 'Unknown'));
+                }
+            } catch (e) {
+                alert('Error saving theme: ' + e.message);
+            }
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', async function() {
+            if (!confirm('Reset all display theme settings to defaults?')) return;
+            try {
+                const response = await fetch('/api/settings/display-theme/reset', { method: 'POST' });
+                if (response.ok) {
+                    await loadTheme();
+                    alert('Theme reset to defaults.');
+                }
+            } catch (e) {
+                alert('Error resetting theme: ' + e.message);
+            }
+        });
+
+        // =====================================================================
+        // Init
+        // =====================================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTheme();
+            scalePreview();
+        });
+    </script>
+</body>
+</html>

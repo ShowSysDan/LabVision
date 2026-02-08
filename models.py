@@ -117,3 +117,18 @@ def get_app_settings():
 def save_app_settings(settings):
     """Save application settings to database"""
     SystemState.set('app_settings', settings)
+
+
+def get_display_theme():
+    """Get display theme settings from database, merged with defaults"""
+    from config import DEFAULT_DISPLAY_THEME
+    saved = SystemState.get('display_theme', {})
+    theme = dict(DEFAULT_DISPLAY_THEME)
+    if saved:
+        theme.update(saved)
+    return theme
+
+
+def save_display_theme(theme):
+    """Save display theme settings to database"""
+    SystemState.set('display_theme', theme)

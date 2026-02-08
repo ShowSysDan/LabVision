@@ -1,86 +1,74 @@
 # Quick Start Guide
 
-Get up and running in 5 minutes!
+Get up and running in under 5 minutes.
 
-## 1. Install Python
+## 1. Install
 
-Make sure you have Python 3.8 or higher installed:
+### Debian/Ubuntu (Recommended)
 ```bash
-python --version
+sudo bash install.sh
 ```
+Done. The app is now running as a service and will start on boot.
 
-If not installed, download from: https://www.python.org/downloads/
-
-## 2. Run the Application
-
-### On Linux/Mac:
+### Manual / Other OS
 ```bash
-./run.sh
+bash run.sh
 ```
 
-### On Windows:
-```
-run.bat
-```
+## 2. Configure API Key
 
-The script will:
-- Create a virtual environment
-- Install dependencies
-- Create a .env file (if needed)
-- Start the server
+1. Open `http://localhost:5000` (or your server's IP)
+2. Click **Settings** in the header
+3. Enter your ArtsVision API key
+4. Click **Save Settings**
+5. Click **Refresh Now** to pull events
 
-## 3. Configure API Key
+## 3. Add Your First Monitor
 
-On first run, edit the `.env` file that was created:
-
-```ini
-ARTSVISION_API_KEY=your-api-key-here
-```
-
-Then run the script again.
-
-## 4. Access Dashboard
-
-Open your browser to:
-```
-http://localhost:5000
-```
-
-## 5. Add Your First Monitor
-
-1. Click **"+ Add Monitor"**
+1. Click **+ Add Monitor**
 2. Name it (e.g., "Main Theater")
-3. Select a location from dropdown
-4. Click **"Save Monitor"**
+3. Select a location from the dropdown
+4. Click **Save Monitor**
 
-That's it! The monitor will now track events at that location.
+The monitor will now track events at that location in real-time.
 
-## Next Steps
+## 4. Set Up a TV Display (Optional)
 
-- **Add More Monitors**: Track multiple locations
-- **Configure Webhooks**: Send status to other systems (see README.md)
-- **Customize Settings**: Edit `.env` for timing adjustments
+1. Edit the monitor (pencil icon)
+2. Check **Enable TV Display Page**
+3. Set **No Event Text** (e.g., "Dark" for a theater)
+4. Enable **Show Countdown to Next Event**
+5. Save - the display URL appears on the card
+6. Open that URL on a TV's browser (e.g., `/display/main-theater`)
+
+## 5. Customize the Display Theme (Optional)
+
+1. Click **Display Theme** in the header
+2. Adjust colors, text sizes, and labels
+3. Toggle between Active/Inactive preview
+4. Click **Save Theme**
+
+## Service Commands
+
+```bash
+sudo systemctl status artsvision-monitor     # Check status
+sudo systemctl restart artsvision-monitor     # Restart
+sudo journalctl -u artsvision-monitor -f      # View logs
+```
+
+## Updating
+
+```bash
+git pull
+sudo systemctl restart artsvision-monitor
+```
+
+Your database and settings are preserved - only code is updated.
 
 ## Troubleshooting
 
-**"No locations showing up"**
-- Wait 30 seconds for initial API poll
-- Click "Refresh Now" button
-- Check API key in `.env`
+- **No locations?** Check your API key in Settings, then click Refresh Now
+- **Can't connect?** Make sure the service is running (`systemctl status`)
+- **Display not updating?** Check the connection dot in the bottom-right corner
 
-**"Can't connect to localhost:5000"**
-- Make sure the script is still running
-- Check for error messages in the console
-- Try a different port in app.py if 5000 is in use
-
-**"Module not found" errors**
-- Make sure you're using the virtual environment
-- Run `pip install -r requirements.txt` manually
-
-## Getting Help
-
-See the full README.md for:
-- Detailed configuration options
-- Webhook examples
-- Production deployment
-- API documentation
+See README.md for full documentation.

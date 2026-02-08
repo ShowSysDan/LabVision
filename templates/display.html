@@ -20,6 +20,12 @@
             --text-white: #f8fafc;
             --text-dim: #94a3b8;
             --countdown-color: #fbbf24;
+            --event-name-size: 96px;
+            --event-time-size: 48px;
+            --no-event-text-size: 120px;
+            --countdown-size: 72px;
+            --header-name-size: 36px;
+            --clock-size: 28px;
         }
 
         html, body {
@@ -39,13 +45,8 @@
             transition: background-color 0.8s ease;
         }
 
-        .display-container.active {
-            background: var(--active-bg);
-        }
-
-        .display-container.inactive {
-            background: var(--inactive-bg);
-        }
+        .display-container.active { background: var(--active-bg); }
+        .display-container.inactive { background: var(--inactive-bg); }
 
         /* Header bar */
         .display-header {
@@ -57,13 +58,13 @@
         }
 
         .display-header .monitor-name {
-            font-size: 36px;
+            font-size: var(--header-name-size);
             font-weight: 600;
             letter-spacing: 0.02em;
         }
 
         .display-header .location-name {
-            font-size: 24px;
+            font-size: calc(var(--header-name-size) * 0.67);
             color: var(--text-dim);
         }
 
@@ -78,12 +79,12 @@
 
         .status-badge.active {
             background: var(--active-accent);
-            color: #064e3b;
+            color: var(--active-bg);
         }
 
         .status-badge.inactive {
             background: var(--inactive-accent);
-            color: #1e293b;
+            color: var(--inactive-bg);
         }
 
         /* Main content area */
@@ -95,49 +96,58 @@
             align-items: center;
             padding: 60px;
             text-align: center;
+            overflow: hidden;
         }
 
         /* Event display (when active) */
-        .event-display {
-            display: none;
-        }
+        .event-display { display: none; width: 100%; }
+        .event-display.visible { display: flex; flex-direction: column; align-items: center; }
 
-        .event-display.visible {
-            display: block;
+        .event-name-wrapper {
+            width: 100%;
+            overflow: hidden;
+            margin-bottom: 40px;
         }
 
         .event-name {
-            font-size: 96px;
+            font-size: var(--event-name-size);
             font-weight: 700;
             line-height: 1.2;
-            margin-bottom: 40px;
             max-width: 1600px;
             word-wrap: break-word;
+            margin: 0 auto;
+        }
+
+        .event-name.scrolling {
+            white-space: nowrap;
+            max-width: none;
+            animation: scrollText var(--scroll-duration, 15s) linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes scrollText {
+            0%   { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
         }
 
         .event-time {
-            font-size: 48px;
+            font-size: var(--event-time-size);
             color: var(--text-dim);
             margin-bottom: 30px;
         }
 
         .event-deactivation {
-            font-size: 32px;
+            font-size: calc(var(--event-time-size) * 0.67);
             color: var(--countdown-color);
             font-weight: 500;
         }
 
         /* No event display (when inactive) */
-        .no-event-display {
-            display: none;
-        }
-
-        .no-event-display.visible {
-            display: block;
-        }
+        .no-event-display { display: none; }
+        .no-event-display.visible { display: block; }
 
         .no-event-text {
-            font-size: 120px;
+            font-size: var(--no-event-text-size);
             font-weight: 700;
             color: var(--text-dim);
             margin-bottom: 50px;
@@ -146,29 +156,24 @@
         }
 
         /* Countdown to next event */
-        .next-event-countdown {
-            display: none;
-        }
-
-        .next-event-countdown.visible {
-            display: block;
-        }
+        .next-event-countdown { display: none; }
+        .next-event-countdown.visible { display: block; }
 
         .next-event-countdown .countdown-label {
-            font-size: 36px;
+            font-size: calc(var(--countdown-size) * 0.5);
             color: var(--text-dim);
             margin-bottom: 20px;
         }
 
         .next-event-countdown .countdown-time {
-            font-size: 72px;
+            font-size: var(--countdown-size);
             font-weight: 700;
             color: var(--countdown-color);
             margin-bottom: 20px;
         }
 
         .next-event-countdown .next-event-name {
-            font-size: 36px;
+            font-size: calc(var(--countdown-size) * 0.5);
             color: var(--text-dim);
         }
 
@@ -182,7 +187,7 @@
         }
 
         .display-footer .clock {
-            font-size: 28px;
+            font-size: var(--clock-size);
             font-weight: 500;
             font-variant-numeric: tabular-nums;
         }
@@ -201,15 +206,9 @@
             vertical-align: middle;
         }
 
-        .connection-dot.connected {
-            background: var(--active-accent);
-        }
+        .connection-dot.connected { background: var(--active-accent); }
+        .connection-dot.disconnected { background: #ef4444; }
 
-        .connection-dot.disconnected {
-            background: #ef4444;
-        }
-
-        /* Pulse animation for active status dot */
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.4; }
@@ -235,7 +234,9 @@
         <div class="display-main">
             <!-- Shown when there IS a current event -->
             <div id="eventDisplay" class="event-display">
-                <div id="eventName" class="event-name"></div>
+                <div class="event-name-wrapper">
+                    <div id="eventName" class="event-name"></div>
+                </div>
                 <div id="eventTime" class="event-time"></div>
                 <div id="eventDeactivation" class="event-deactivation"></div>
             </div>
@@ -244,7 +245,6 @@
             <div id="noEventDisplay" class="no-event-display visible">
                 <div class="no-event-text">{{ monitor.no_event_text or 'No Event' }}</div>
 
-                <!-- Countdown to next event (if enabled and next event exists) -->
                 <div id="nextEventCountdown" class="next-event-countdown">
                     <div class="countdown-label">Next Reservation</div>
                     <div id="countdownTime" class="countdown-time"></div>
@@ -264,13 +264,50 @@
     </div>
 
     <script>
-        // Configuration from server
         const MONITOR_ID = {{ monitor.id }};
         const SHOW_COUNTDOWN = {{ 'true' if monitor.show_countdown else 'false' }};
         const NO_EVENT_TEXT = {{ (monitor.no_event_text or 'No Event') | tojson }};
 
         let socket = null;
         let currentData = null;
+        let scrollEnabled = true;
+        let activeLabel = 'IN USE';
+        let inactiveLabel = 'AVAILABLE';
+
+        // =====================================================================
+        // Theme Loading
+        // =====================================================================
+
+        async function loadTheme() {
+            try {
+                const response = await fetch('/api/settings/display-theme');
+                const theme = await response.json();
+                const root = document.documentElement;
+
+                root.style.setProperty('--active-bg', theme.active_bg || '#064e3b');
+                root.style.setProperty('--active-accent', theme.active_accent || '#10b981');
+                root.style.setProperty('--inactive-bg', theme.inactive_bg || '#1e293b');
+                root.style.setProperty('--inactive-accent', theme.inactive_accent || '#64748b');
+                root.style.setProperty('--text-white', theme.text_color || '#f8fafc');
+                root.style.setProperty('--text-dim', theme.text_dim || '#94a3b8');
+                root.style.setProperty('--countdown-color', theme.countdown_color || '#fbbf24');
+                root.style.setProperty('--event-name-size', (theme.event_name_size || 96) + 'px');
+                root.style.setProperty('--event-time-size', (theme.event_time_size || 48) + 'px');
+                root.style.setProperty('--no-event-text-size', (theme.no_event_text_size || 120) + 'px');
+                root.style.setProperty('--countdown-size', (theme.countdown_size || 72) + 'px');
+                root.style.setProperty('--header-name-size', (theme.header_name_size || 36) + 'px');
+                root.style.setProperty('--clock-size', (theme.clock_size || 28) + 'px');
+
+                document.body.style.color = theme.text_color || '#f8fafc';
+                scrollEnabled = theme.scroll_long_names !== false;
+                activeLabel = theme.active_label || 'IN USE';
+                inactiveLabel = theme.inactive_label || 'AVAILABLE';
+
+                updateDisplay();
+            } catch (e) {
+                console.error('Error loading theme:', e);
+            }
+        }
 
         // =====================================================================
         // WebSocket Connection
@@ -282,7 +319,6 @@
             socket.on('connect', function() {
                 document.getElementById('connectionDot').className = 'connection-dot connected';
                 document.getElementById('connectionText').textContent = 'Connected';
-                // Request initial data
                 fetchDisplayData();
             });
 
@@ -292,7 +328,6 @@
             });
 
             socket.on('monitors_update', function(data) {
-                // Find our monitor in the update
                 const monitor = data.monitors.find(m => m.id === MONITOR_ID);
                 if (monitor) {
                     currentData = monitor;
@@ -301,7 +336,6 @@
             });
         }
 
-        // Fallback polling in case WebSocket has issues
         async function fetchDisplayData() {
             try {
                 const response = await fetch('/api/display/' + MONITOR_ID);
@@ -311,6 +345,34 @@
                 }
             } catch (e) {
                 console.error('Error fetching display data:', e);
+            }
+        }
+
+        // =====================================================================
+        // Scrolling Logic
+        // =====================================================================
+
+        function checkScrollNeeded(element) {
+            if (!scrollEnabled) {
+                element.classList.remove('scrolling');
+                return;
+            }
+
+            // Reset to measure natural width
+            element.classList.remove('scrolling');
+            element.style.whiteSpace = 'nowrap';
+
+            const textWidth = element.scrollWidth;
+            const containerWidth = element.parentElement.clientWidth;
+
+            if (textWidth > containerWidth) {
+                const pixelsPerSecond = 150;
+                const duration = Math.max(8, (textWidth + containerWidth) / pixelsPerSecond);
+                element.style.setProperty('--scroll-duration', duration + 's');
+                element.classList.add('scrolling');
+            } else {
+                element.style.whiteSpace = '';
+                element.classList.remove('scrolling');
             }
         }
 
@@ -327,16 +389,18 @@
             const noEventDisplay = document.getElementById('noEventDisplay');
 
             if (currentData.is_active && currentData.current_event) {
-                // ACTIVE - show current event
                 container.className = 'display-container active';
                 statusBadge.className = 'status-badge active';
-                statusBadge.textContent = 'IN USE';
+                statusBadge.textContent = activeLabel;
 
                 eventDisplay.className = 'event-display visible';
                 noEventDisplay.className = 'no-event-display';
 
                 const event = currentData.current_event;
-                document.getElementById('eventName').textContent = event.name;
+                const eventNameEl = document.getElementById('eventName');
+                eventNameEl.textContent = event.name;
+
+                requestAnimationFrame(() => checkScrollNeeded(eventNameEl));
 
                 if (event.is_all_day) {
                     document.getElementById('eventTime').textContent = 'All Day';
@@ -346,17 +410,15 @@
                     document.getElementById('eventTime').textContent = outTime ? inTime + ' - ' + outTime : inTime;
                 }
 
-                // Show deactivation countdown
                 if (event.deactivation_time) {
                     const countdown = getCountdownText(event.deactivation_time);
                     document.getElementById('eventDeactivation').textContent = 'Ends in ' + countdown;
                 }
 
             } else {
-                // INACTIVE - show no event text + optional countdown
                 container.className = 'display-container inactive';
                 statusBadge.className = 'status-badge inactive';
-                statusBadge.textContent = 'AVAILABLE';
+                statusBadge.textContent = inactiveLabel;
 
                 eventDisplay.className = 'event-display';
                 noEventDisplay.className = 'no-event-display visible';
@@ -445,20 +507,17 @@
         // Initialize
         // =====================================================================
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadTheme();
             initSocketIO();
             updateClock();
 
-            // Update clock every second
             setInterval(updateClock, 1000);
-
-            // Update countdowns every 30 seconds
-            setInterval(function() {
-                updateDisplay();
-            }, 30000);
-
-            // Fallback: re-fetch data every 2 minutes in case WebSocket drops
+            setInterval(updateDisplay, 30000);
             setInterval(fetchDisplayData, 120000);
+
+            // Reload theme every 5 minutes in case it was changed
+            setInterval(loadTheme, 300000);
         });
     </script>
 </body>
