@@ -69,12 +69,12 @@ class Monitor(db.Model):
 
 class SystemState(db.Model):
     """System-wide state and cached data"""
-    
+
     id = db.Column(db.Integer, primary_key=True)
     key = db.Column(db.String(100), unique=True, nullable=False)
     value = db.Column(db.Text)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     @staticmethod
     def get(key, default=None):
         """Get a value by key"""
@@ -85,19 +85,35 @@ class SystemState(db.Model):
             except:
                 return state.value
         return default
-    
+
     @staticmethod
     def set(key, value):
         """Set a value by key"""
         state = SystemState.query.filter_by(key=key).first()
         if not state:
             state = SystemState(key=key)
-        
+
         if isinstance(value, (dict, list)):
             state.value = json.dumps(value)
         else:
             state.value = str(value)
-        
+
         state.updated_at = datetime.utcnow()
         db.session.add(state)
         db.session.commit()
+
+
+def get_app_settings():
+    """Get all application settings from database, merged with defaults"""
+    from config import DEFAULT_APP_SETTINGS
+    saved = SystemState.get('app_settings', {})
+    # Merge: saved values override defaults
+    settings = dict(DEFAULT_APP_SETTINGS)
+    if saved:
+        settings.update(saved)
+    return settings
+
+
+def save_app_settings(settings):
+    """Save application settings to database"""
+    SystemState.set('app_settings', settings)
