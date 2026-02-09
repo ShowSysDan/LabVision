@@ -7,6 +7,10 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 
+# Database
+instance/
+*.db
+
 # Environment variables
 .env
 

@@ -74,19 +74,45 @@ function setupEventListeners() {
         manualRefresh();
     });
     
-    // Modal close
-    document.querySelector('.close').addEventListener('click', function() {
+    // Monitor modal close (X button inside the monitor modal)
+    document.querySelector('#monitorModal .close').addEventListener('click', function() {
         closeMonitorModal();
     });
-    
+
     // Cancel button
     document.getElementById('cancelBtn').addEventListener('click', function() {
         closeMonitorModal();
+    });
+
+    // Settings button
+    document.getElementById('settingsBtn').addEventListener('click', function() {
+        openSettingsModal();
+    });
+
+    // Settings modal close
+    document.getElementById('settingsClose').addEventListener('click', function() {
+        closeSettingsModal();
+    });
+
+    // Settings cancel button
+    document.getElementById('settingsCancelBtn').addEventListener('click', function() {
+        closeSettingsModal();
+    });
+
+    // Settings form submit
+    document.getElementById('settingsForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        saveSettings();
     });
     
     // Webhook enabled checkbox
     document.getElementById('webhookEnabled').addEventListener('change', function() {
         toggleWebhookSettings(this.checked);
+    });
+
+    // Display enabled checkbox
+    document.getElementById('displayEnabled').addEventListener('change', function() {
+        toggleDisplaySettings(this.checked);
     });
     
     // Form submit
@@ -97,9 +123,13 @@ function setupEventListeners() {
     
     // Click outside modal to close
     window.addEventListener('click', function(e) {
-        const modal = document.getElementById('monitorModal');
-        if (e.target === modal) {
+        const monitorModal = document.getElementById('monitorModal');
+        const settingsModal = document.getElementById('settingsModal');
+        if (e.target === monitorModal) {
             closeMonitorModal();
+        }
+        if (e.target === settingsModal) {
+            closeSettingsModal();
         }
     });
 }
@@ -152,6 +182,10 @@ async function saveMonitor() {
         }
     }
     
+    const displayEnabled = document.getElementById('displayEnabled').checked;
+    const noEventText = document.getElementById('noEventText').value;
+    const showCountdown = document.getElementById('showCountdown').checked;
+
     const data = {
         name,
         location,
@@ -159,7 +193,10 @@ async function saveMonitor() {
         webhook_url: webhookUrl || null,
         webhook_method: webhookMethod,
         webhook_headers: parsedHeaders,
-        webhook_body_template: webhookBodyTemplate || null
+        webhook_body_template: webhookBodyTemplate || null,
+        display_enabled: displayEnabled,
+        no_event_text: noEventText || 'No Event',
+        show_countdown: showCountdown
     };
     
     try {
@@ -335,9 +372,16 @@ function createMonitorCard(monitor) {
         `;
     }
     
-    const webhookBadge = monitor.webhook_enabled ? 
+    const webhookBadge = monitor.webhook_enabled ?
         '<span class="webhook-badge">🔗 Webhook Enabled</span>' : '';
-    
+
+    const displaySlug = monitor.display_slug || monitor.name.toLowerCase().replace(/ /g, '-');
+    const displayLink = monitor.display_enabled ?
+        `<div class="display-link-section">
+            <span class="display-badge">📺 TV Display</span>
+            <a href="/display/${escapeHtml(displaySlug)}" target="_blank" class="display-url">/display/${escapeHtml(displaySlug)}</a>
+        </div>` : '';
+
     return `
         <div class="monitor-card" data-id="${monitor.id}">
             <div class="monitor-header">
@@ -355,21 +399,22 @@ function createMonitorCard(monitor) {
                     <span class="status-dot ${statusClass}"></span>
                     <span>${statusText}</span>
                 </div>
-                
+
                 <div class="event-section">
                     <h4>Current Event</h4>
                     ${currentEventHtml}
                 </div>
-                
+
                 <div class="event-section">
                     <h4>Next Event</h4>
                     ${nextEventHtml}
                 </div>
-                
+
                 ${webhookBadge}
-                ${monitor.webhook_enabled ? 
-                    `<button class="btn btn-sm btn-secondary" style="margin-top: 0.5rem;" onclick="testWebhook(${monitor.id})">Test Webhook</button>` : 
+                ${monitor.webhook_enabled ?
+                    `<button class="btn btn-sm btn-secondary" style="margin-top: 0.5rem;" onclick="testWebhook(${monitor.id})">Test Webhook</button>` :
                     ''}
+                ${displayLink}
             </div>
         </div>
     `;
@@ -400,16 +445,21 @@ function openMonitorModal(monitor = null) {
         document.getElementById('webhookEnabled').checked = monitor.webhook_enabled;
         document.getElementById('webhookUrl').value = monitor.webhook_url || '';
         document.getElementById('webhookMethod').value = monitor.webhook_method || 'POST';
-        document.getElementById('webhookHeaders').value = 
+        document.getElementById('webhookHeaders').value =
             monitor.webhook_headers ? JSON.stringify(monitor.webhook_headers, null, 2) : '';
         document.getElementById('webhookBodyTemplate').value = monitor.webhook_body_template || '';
-        
+        document.getElementById('displayEnabled').checked = monitor.display_enabled || false;
+        document.getElementById('noEventText').value = monitor.no_event_text || '';
+        document.getElementById('showCountdown').checked = monitor.show_countdown !== false;
+
         toggleWebhookSettings(monitor.webhook_enabled);
+        toggleDisplaySettings(monitor.display_enabled || false);
     } else {
         // Add mode
         document.getElementById('modalTitle').textContent = 'Add Monitor';
         document.getElementById('monitorId').value = '';
         toggleWebhookSettings(false);
+        toggleDisplaySettings(false);
     }
     
     modal.classList.add('show');
@@ -430,6 +480,87 @@ function editMonitor(id) {
 function toggleWebhookSettings(enabled) {
     const settings = document.getElementById('webhookSettings');
     settings.style.display = enabled ? 'block' : 'none';
+}
+
+function toggleDisplaySettings(enabled) {
+    const settings = document.getElementById('displaySettings');
+    settings.style.display = enabled ? 'block' : 'none';
+}
+
+// ============================================================================
+// Settings Management
+// ============================================================================
+
+async function openSettingsModal() {
+    const modal = document.getElementById('settingsModal');
+
+    try {
+        const response = await fetch('/api/settings');
+        const settings = await response.json();
+
+        // Populate form fields
+        document.getElementById('settingApiKey').value = '';
+        document.getElementById('settingApiKey').placeholder = settings.api_key_masked || 'Enter your ArtsVision API key';
+        document.getElementById('apiKeyHint').textContent = settings.api_key_masked ?
+            'Current key: ' + settings.api_key_masked + ' (leave blank to keep current)' :
+            'No API key set - enter one to connect to ArtsVision';
+        document.getElementById('settingApiUrl').value = settings.api_url || '';
+        document.getElementById('settingVerifySsl').checked = settings.verify_ssl !== false;
+        document.getElementById('settingApiPollInterval').value = settings.api_poll_interval || 1800;
+        document.getElementById('settingProcessInterval').value = settings.process_interval || 60;
+        document.getElementById('settingPreShowMinutes').value = settings.pre_show_minutes || 30;
+        document.getElementById('settingPostShowMinutes').value = settings.post_show_minutes || 60;
+        document.getElementById('settingFilterConfirmed').checked = settings.filter_confirmed_only !== false;
+        document.getElementById('settingDiscoveryDays').value = settings.location_discovery_days || 90;
+
+    } catch (error) {
+        console.error('Error loading settings:', error);
+    }
+
+    modal.classList.add('show');
+}
+
+function closeSettingsModal() {
+    const modal = document.getElementById('settingsModal');
+    modal.classList.remove('show');
+}
+
+async function saveSettings() {
+    const apiKey = document.getElementById('settingApiKey').value;
+    const data = {
+        api_url: document.getElementById('settingApiUrl').value,
+        verify_ssl: document.getElementById('settingVerifySsl').checked,
+        api_poll_interval: parseInt(document.getElementById('settingApiPollInterval').value) || 1800,
+        process_interval: parseInt(document.getElementById('settingProcessInterval').value) || 60,
+        pre_show_minutes: parseInt(document.getElementById('settingPreShowMinutes').value) || 30,
+        post_show_minutes: parseInt(document.getElementById('settingPostShowMinutes').value) || 60,
+        filter_confirmed_only: document.getElementById('settingFilterConfirmed').checked,
+        location_discovery_days: parseInt(document.getElementById('settingDiscoveryDays').value) || 90
+    };
+
+    // Only send api_key if the user typed a new one
+    if (apiKey && !apiKey.startsWith('*')) {
+        data.api_key = apiKey;
+    }
+
+    try {
+        const response = await fetch('/api/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+            closeSettingsModal();
+            alert('Settings saved! Changes will take effect on the next poll cycle.');
+        } else {
+            const error = await response.json();
+            alert('Error saving settings: ' + (error.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error saving settings:', error);
+        alert('Error saving settings: ' + error.message);
+    }
 }
 
 // ============================================================================

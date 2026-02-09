@@ -223,9 +223,6 @@ A: On internal corporate networks with self-signed certificates, yes. On public 
 **Q: Can I trust the ArtsVision server?**
 A: If it's your organization's server on your corporate network, yes.
 
-**Q: Why does the Lua version work without this?**
-A: The Lua version might not verify SSL certificates by default, or uses different SSL libraries.
-
 ---
 
 ## Summary

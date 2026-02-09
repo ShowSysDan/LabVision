@@ -1,39 +1,49 @@
 import os
-from datetime import timedelta
 
 class Config:
-    """Application configuration"""
-    
+    """Flask infrastructure configuration (non-user-facing)"""
+
     # Flask
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
-    
+
     # Database
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///artsvision_monitors.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    
-    # ArtsVision API
-    ARTSVISION_API_KEY = os.environ.get('ARTSVISION_API_KEY', '823264392764')
-    ARTSVISION_API_URL = os.environ.get('ARTSVISION_API_URL', 'https://av2.artsvision.net/api/getdata')
-    
-    # SSL Verification (set to False if ArtsVision uses self-signed certificate)
-    ARTSVISION_VERIFY_SSL = os.environ.get('ARTSVISION_VERIFY_SSL', 'true').lower() == 'true'
-    
-    # Polling intervals
-    API_POLL_INTERVAL = int(os.environ.get('API_POLL_INTERVAL', 1800))  # 30 minutes
-    PROCESS_INTERVAL = int(os.environ.get('PROCESS_INTERVAL', 60))  # 60 seconds
-    
-    # Theater activation windows (in minutes)
-    PRE_SHOW_MINUTES = int(os.environ.get('PRE_SHOW_MINUTES', 30))
-    POST_SHOW_MINUTES = int(os.environ.get('POST_SHOW_MINUTES', 60))
-    
-    # Event filtering
-    FILTER_CONFIRMED_ONLY = os.environ.get('FILTER_CONFIRMED_ONLY', 'true').lower() == 'true'
-    
-    # Date range for discovering locations (days into future)
-    LOCATION_DISCOVERY_DAYS = int(os.environ.get('LOCATION_DISCOVERY_DAYS', '90'))
-    
-    # Display settings
-    MAX_NEXT_EVENTS = int(os.environ.get('MAX_NEXT_EVENTS', 6))
-    
+
     # WebSocket
     SOCKETIO_ASYNC_MODE = 'threading'
+
+
+# Default application settings (stored in database via SystemState)
+# These are used on first run before the user configures via the UI.
+DEFAULT_APP_SETTINGS = {
+    'api_key': '',
+    'api_url': 'https://av2.artsvision.net/api/getdata',
+    'verify_ssl': True,
+    'api_poll_interval': 1800,       # 30 minutes
+    'process_interval': 60,          # 60 seconds
+    'pre_show_minutes': 30,
+    'post_show_minutes': 60,
+    'filter_confirmed_only': True,
+    'location_discovery_days': 90,
+}
+
+# Default display theme (stored in database via SystemState as 'display_theme')
+DEFAULT_DISPLAY_THEME = {
+    'active_bg': '#064e3b',
+    'active_accent': '#10b981',
+    'inactive_bg': '#1e293b',
+    'inactive_accent': '#64748b',
+    'text_color': '#f8fafc',
+    'text_dim': '#94a3b8',
+    'countdown_color': '#fbbf24',
+    'event_name_size': 96,
+    'event_time_size': 48,
+    'no_event_text_size': 120,
+    'countdown_size': 72,
+    'header_name_size': 36,
+    'clock_size': 28,
+    'scroll_long_names': True,
+    'active_label': 'IN USE',
+    'inactive_label': 'AVAILABLE',
+}

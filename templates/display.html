@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080, initial-scale=1.0">
+    <title>{{ monitor.name }} - Display</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --active-bg: #064e3b;
+            --active-accent: #10b981;
+            --inactive-bg: #1e293b;
+            --inactive-accent: #64748b;
+            --text-white: #f8fafc;
+            --text-dim: #94a3b8;
+            --countdown-color: #fbbf24;
+            --event-name-size: 96px;
+            --event-time-size: 48px;
+            --no-event-text-size: 120px;
+            --countdown-size: 72px;
+            --header-name-size: 36px;
+            --clock-size: 28px;
+        }
+
+        html, body {
+            width: 1920px;
+            height: 1080px;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--inactive-bg);
+            color: var(--text-white);
+        }
+
+        .display-container {
+            width: 1920px;
+            height: 1080px;
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.8s ease;
+        }
+
+        .display-container.active { background: var(--active-bg); }
+        .display-container.inactive { background: var(--inactive-bg); }
+
+        /* Header bar */
+        .display-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 30px 60px;
+            border-bottom: 3px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .display-header .monitor-name {
+            font-size: var(--header-name-size);
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+
+        .display-header .location-name {
+            font-size: calc(var(--header-name-size) * 0.67);
+            color: var(--text-dim);
+        }
+
+        .display-header .status-badge {
+            padding: 12px 36px;
+            border-radius: 12px;
+            font-size: 24px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .status-badge.active {
+            background: var(--active-accent);
+            color: var(--active-bg);
+        }
+
+        .status-badge.inactive {
+            background: var(--inactive-accent);
+            color: var(--inactive-bg);
+        }
+
+        /* Main content area */
+        .display-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        /* Event display (when active) */
+        .event-display { display: none; width: 100%; }
+        .event-display.visible { display: flex; flex-direction: column; align-items: center; }
+
+        .event-name-wrapper {
+            width: 100%;
+            overflow: hidden;
+            margin-bottom: 40px;
+        }
+
+        .event-name {
+            font-size: var(--event-name-size);
+            font-weight: 700;
+            line-height: 1.2;
+            max-width: 1600px;
+            word-wrap: break-word;
+            margin: 0 auto;
+        }
+
+        .event-name.scrolling {
+            white-space: nowrap;
+            max-width: none;
+            animation: scrollText var(--scroll-duration, 15s) linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes scrollText {
+            0%   { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        .event-time {
+            font-size: var(--event-time-size);
+            color: var(--text-dim);
+            margin-bottom: 30px;
+        }
+
+        .event-deactivation {
+            font-size: calc(var(--event-time-size) * 0.67);
+            color: var(--countdown-color);
+            font-weight: 500;
+        }
+
+        /* No event display (when inactive) */
+        .no-event-display { display: none; }
+        .no-event-display.visible { display: block; }
+
+        .no-event-text {
+            font-size: var(--no-event-text-size);
+            font-weight: 700;
+            color: var(--text-dim);
+            margin-bottom: 50px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Countdown to next event */
+        .next-event-countdown { display: none; }
+        .next-event-countdown.visible { display: block; }
+
+        .next-event-countdown .countdown-label {
+            font-size: calc(var(--countdown-size) * 0.5);
+            color: var(--text-dim);
+            margin-bottom: 20px;
+        }
+
+        .next-event-countdown .countdown-time {
+            font-size: var(--countdown-size);
+            font-weight: 700;
+            color: var(--countdown-color);
+            margin-bottom: 20px;
+        }
+
+        .next-event-countdown .next-event-name {
+            font-size: calc(var(--countdown-size) * 0.5);
+            color: var(--text-dim);
+        }
+
+        /* Footer */
+        .display-footer {
+            padding: 20px 60px;
+            border-top: 3px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .display-footer .clock {
+            font-size: var(--clock-size);
+            font-weight: 500;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .display-footer .connection-status {
+            font-size: 18px;
+            color: var(--text-dim);
+        }
+
+        .connection-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        .connection-dot.connected { background: var(--active-accent); }
+        .connection-dot.disconnected { background: #ef4444; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .status-badge.active {
+            animation: pulse 2s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div id="displayContainer" class="display-container inactive">
+        <!-- Header -->
+        <div class="display-header">
+            <div>
+                <div class="monitor-name">{{ monitor.name }}</div>
+                <div class="location-name">{{ monitor.location }}</div>
+            </div>
+            <div id="statusBadge" class="status-badge inactive">Inactive</div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="display-main">
+            <!-- Shown when there IS a current event -->
+            <div id="eventDisplay" class="event-display">
+                <div class="event-name-wrapper">
+                    <div id="eventName" class="event-name"></div>
+                </div>
+                <div id="eventTime" class="event-time"></div>
+                <div id="eventDeactivation" class="event-deactivation"></div>
+            </div>
+
+            <!-- Shown when there is NO current event -->
+            <div id="noEventDisplay" class="no-event-display visible">
+                <div class="no-event-text">{{ monitor.no_event_text or 'No Event' }}</div>
+
+                <div id="nextEventCountdown" class="next-event-countdown">
+                    <div class="countdown-label">Next Reservation</div>
+                    <div id="countdownTime" class="countdown-time"></div>
+                    <div id="nextEventName" class="next-event-name"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="display-footer">
+            <div id="clock" class="clock"></div>
+            <div class="connection-status">
+                <span id="connectionDot" class="connection-dot disconnected"></span>
+                <span id="connectionText">Connecting...</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const MONITOR_ID = {{ monitor.id }};
+        const SHOW_COUNTDOWN = {{ 'true' if monitor.show_countdown else 'false' }};
+        const NO_EVENT_TEXT = {{ (monitor.no_event_text or 'No Event') | tojson }};
+
+        let socket = null;
+        let currentData = null;
+        let scrollEnabled = true;
+        let activeLabel = 'IN USE';
+        let inactiveLabel = 'AVAILABLE';
+
+        // =====================================================================
+        // Theme Loading
+        // =====================================================================
+
+        async function loadTheme() {
+            try {
+                const response = await fetch('/api/settings/display-theme');
+                const theme = await response.json();
+                const root = document.documentElement;
+
+                root.style.setProperty('--active-bg', theme.active_bg || '#064e3b');
+                root.style.setProperty('--active-accent', theme.active_accent || '#10b981');
+                root.style.setProperty('--inactive-bg', theme.inactive_bg || '#1e293b');
+                root.style.setProperty('--inactive-accent', theme.inactive_accent || '#64748b');
+                root.style.setProperty('--text-white', theme.text_color || '#f8fafc');
+                root.style.setProperty('--text-dim', theme.text_dim || '#94a3b8');
+                root.style.setProperty('--countdown-color', theme.countdown_color || '#fbbf24');
+                root.style.setProperty('--event-name-size', (theme.event_name_size || 96) + 'px');
+                root.style.setProperty('--event-time-size', (theme.event_time_size || 48) + 'px');
+                root.style.setProperty('--no-event-text-size', (theme.no_event_text_size || 120) + 'px');
+                root.style.setProperty('--countdown-size', (theme.countdown_size || 72) + 'px');
+                root.style.setProperty('--header-name-size', (theme.header_name_size || 36) + 'px');
+                root.style.setProperty('--clock-size', (theme.clock_size || 28) + 'px');
+
+                document.body.style.color = theme.text_color || '#f8fafc';
+                scrollEnabled = theme.scroll_long_names !== false;
+                activeLabel = theme.active_label || 'IN USE';
+                inactiveLabel = theme.inactive_label || 'AVAILABLE';
+
+                updateDisplay();
+            } catch (e) {
+                console.error('Error loading theme:', e);
+            }
+        }
+
+        // =====================================================================
+        // WebSocket Connection
+        // =====================================================================
+
+        function initSocketIO() {
+            socket = io();
+
+            socket.on('connect', function() {
+                document.getElementById('connectionDot').className = 'connection-dot connected';
+                document.getElementById('connectionText').textContent = 'Connected';
+                fetchDisplayData();
+            });
+
+            socket.on('disconnect', function() {
+                document.getElementById('connectionDot').className = 'connection-dot disconnected';
+                document.getElementById('connectionText').textContent = 'Disconnected';
+            });
+
+            socket.on('monitors_update', function(data) {
+                const monitor = data.monitors.find(m => m.id === MONITOR_ID);
+                if (monitor) {
+                    currentData = monitor;
+                    updateDisplay();
+                }
+            });
+        }
+
+        async function fetchDisplayData() {
+            try {
+                const response = await fetch('/api/display/' + MONITOR_ID);
+                if (response.ok) {
+                    currentData = await response.json();
+                    updateDisplay();
+                }
+            } catch (e) {
+                console.error('Error fetching display data:', e);
+            }
+        }
+
+        // =====================================================================
+        // Scrolling Logic
+        // =====================================================================
+
+        function checkScrollNeeded(element) {
+            if (!scrollEnabled) {
+                element.classList.remove('scrolling');
+                return;
+            }
+
+            // Reset to measure natural width
+            element.classList.remove('scrolling');
+            element.style.whiteSpace = 'nowrap';
+
+            const textWidth = element.scrollWidth;
+            const containerWidth = element.parentElement.clientWidth;
+
+            if (textWidth > containerWidth) {
+                const pixelsPerSecond = 150;
+                const duration = Math.max(8, (textWidth + containerWidth) / pixelsPerSecond);
+                element.style.setProperty('--scroll-duration', duration + 's');
+                element.classList.add('scrolling');
+            } else {
+                element.style.whiteSpace = '';
+                element.classList.remove('scrolling');
+            }
+        }
+
+        // =====================================================================
+        // Display Update Logic
+        // =====================================================================
+
+        function updateDisplay() {
+            if (!currentData) return;
+
+            const container = document.getElementById('displayContainer');
+            const statusBadge = document.getElementById('statusBadge');
+            const eventDisplay = document.getElementById('eventDisplay');
+            const noEventDisplay = document.getElementById('noEventDisplay');
+
+            if (currentData.is_active && currentData.current_event) {
+                container.className = 'display-container active';
+                statusBadge.className = 'status-badge active';
+                statusBadge.textContent = activeLabel;
+
+                eventDisplay.className = 'event-display visible';
+                noEventDisplay.className = 'no-event-display';
+
+                const event = currentData.current_event;
+                const eventNameEl = document.getElementById('eventName');
+                eventNameEl.textContent = event.name;
+
+                requestAnimationFrame(() => checkScrollNeeded(eventNameEl));
+
+                if (event.is_all_day) {
+                    document.getElementById('eventTime').textContent = 'All Day';
+                } else {
+                    const inTime = formatDisplayTime(event.in_time);
+                    const outTime = event.out_time ? formatDisplayTime(event.out_time) : '';
+                    document.getElementById('eventTime').textContent = outTime ? inTime + ' - ' + outTime : inTime;
+                }
+
+                if (event.deactivation_time) {
+                    const countdown = getCountdownText(event.deactivation_time);
+                    document.getElementById('eventDeactivation').textContent = 'Ends in ' + countdown;
+                }
+
+            } else {
+                container.className = 'display-container inactive';
+                statusBadge.className = 'status-badge inactive';
+                statusBadge.textContent = inactiveLabel;
+
+                eventDisplay.className = 'event-display';
+                noEventDisplay.className = 'no-event-display visible';
+
+                updateNextEventCountdown();
+            }
+        }
+
+        function updateNextEventCountdown() {
+            const countdownEl = document.getElementById('nextEventCountdown');
+
+            if (!SHOW_COUNTDOWN || !currentData || !currentData.next_event) {
+                countdownEl.className = 'next-event-countdown';
+                return;
+            }
+
+            const nextEvent = currentData.next_event;
+            const activationTime = nextEvent.activation_time || nextEvent.in_time;
+
+            if (!activationTime) {
+                countdownEl.className = 'next-event-countdown';
+                return;
+            }
+
+            countdownEl.className = 'next-event-countdown visible';
+
+            const countdown = getCountdownText(activationTime);
+            const eventTime = formatDisplayTime(nextEvent.in_time);
+
+            document.getElementById('countdownTime').textContent = countdown + ' Till Reservation';
+            document.getElementById('nextEventName').textContent = nextEvent.name + ' at ' + eventTime;
+        }
+
+        // =====================================================================
+        // Time Utilities
+        // =====================================================================
+
+        function formatDisplayTime(isoString) {
+            if (!isoString) return '';
+            const date = new Date(isoString);
+            return date.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+        }
+
+        function getCountdownText(isoString) {
+            if (!isoString) return '';
+
+            const target = new Date(isoString);
+            const now = new Date();
+            const diff = target - now;
+
+            if (diff < 0) return 'Now';
+
+            const totalMinutes = Math.floor(diff / (1000 * 60));
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+
+            if (hours > 0) {
+                return hours + 'h ' + minutes + 'min';
+            } else {
+                return minutes + 'min';
+            }
+        }
+
+        function updateClock() {
+            const now = new Date();
+            const time = now.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            });
+            const date = now.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            document.getElementById('clock').textContent = time + '  |  ' + date;
+        }
+
+        // =====================================================================
+        // Initialize
+        // =====================================================================
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadTheme();
+            initSocketIO();
+            updateClock();
+
+            setInterval(updateClock, 1000);
+            setInterval(updateDisplay, 30000);
+            setInterval(fetchDisplayData, 120000);
+
+            // Reload theme every 5 minutes in case it was changed
+            setInterval(loadTheme, 300000);
+        });
+    </script>
+</body>
+</html>

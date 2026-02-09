@@ -1,7 +1,7 @@
 import requests
 import logging
 from datetime import datetime, timedelta
-from models import db, Monitor, SystemState
+from models import db, Monitor, SystemState, get_app_settings
 import json
 import urllib3
 
@@ -10,30 +10,35 @@ logger = logging.getLogger(__name__)
 
 class ArtsVisionPoller:
     """Poll ArtsVision API and process events"""
-    
-    def __init__(self, api_key, api_url, pre_show_minutes=30, post_show_minutes=60, verify_ssl=True, filter_confirmed_only=True, location_discovery_days=90):
-        self.api_key = api_key
-        # Extract base URL from api_url (remove /getdata if present)
-        base_url = api_url.replace('/getdata', '').rstrip('/')
-        self.api_base_url = base_url
-        self.api_url = api_url
-        self.pre_show_minutes = pre_show_minutes
-        self.post_show_minutes = post_show_minutes
-        self.verify_ssl = verify_ssl
-        self.filter_confirmed_only = filter_confirmed_only
-        self.location_discovery_days = location_discovery_days
+
+    def __init__(self):
+        self.api_key = ''
+        self.api_base_url = ''
+        self.api_url = ''
+        self.pre_show_minutes = 30
+        self.post_show_minutes = 60
+        self.verify_ssl = True
+        self.filter_confirmed_only = True
+        self.location_discovery_days = 90
         self.cached_events = []
         self.all_locations = set()
         self.event_metadata = None
-        
-        # Warn if SSL verification is disabled
+
+    def reload_settings(self):
+        """Reload settings from database before each operation"""
+        settings = get_app_settings()
+
+        self.api_key = settings.get('api_key', '')
+        api_url = settings.get('api_url', 'https://av2.artsvision.net/api/getdata')
+        self.api_url = api_url
+        self.api_base_url = api_url.replace('/getdata', '').rstrip('/')
+        self.pre_show_minutes = int(settings.get('pre_show_minutes', 30))
+        self.post_show_minutes = int(settings.get('post_show_minutes', 60))
+        self.verify_ssl = settings.get('verify_ssl', True)
+        self.filter_confirmed_only = settings.get('filter_confirmed_only', True)
+        self.location_discovery_days = int(settings.get('location_discovery_days', 90))
+
         if not self.verify_ssl:
-            logger.warning("=" * 70)
-            logger.warning("SSL CERTIFICATE VERIFICATION IS DISABLED")
-            logger.warning("This is INSECURE and should only be used for testing")
-            logger.warning("with self-signed certificates on trusted networks!")
-            logger.warning("=" * 70)
-            # Suppress the InsecureRequestWarning
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     
     def _make_api_request(self, endpoint, method='GET', payload=None):
@@ -146,6 +151,10 @@ class ArtsVisionPoller:
     def poll_api(self):
         """Fetch events from ArtsVision API"""
         try:
+            self.reload_settings()
+            if not self.api_key:
+                logger.warning("No API key configured. Skipping poll. Configure via Settings in the dashboard.")
+                return False
             logger.info("Polling ArtsVision API...")
             
             today = datetime.now().strftime("%m/%d/%Y")
@@ -341,6 +350,10 @@ class ArtsVisionPoller:
         Discover all locations by querying events from an extended date range.
         Also tries to query Location entity if it exists.
         """
+        self.reload_settings()
+        if not self.api_key:
+            logger.warning("No API key configured. Skipping location discovery.")
+            return []
         logger.info(f"Discovering locations from events in next {self.location_discovery_days} days...")
         
         discovered_locations = set()
@@ -466,6 +479,10 @@ class ArtsVisionPoller:
         This helps understand available entities and fields.
         Should be called once during initialization.
         """
+        self.reload_settings()
+        if not self.api_key:
+            logger.warning("No API key configured. Skipping schema discovery.")
+            return [], []
         logger.info("Discovering ArtsVision API schema...")
         
         # Get all available entities
@@ -504,6 +521,7 @@ class ArtsVisionPoller:
     def process_monitors(self):
         """Update all monitor states based on cached events"""
         try:
+            self.reload_settings()
             monitors = Monitor.query.filter_by(enabled=True).all()
             logger.info(f"Processing {len(monitors)} monitors...")
             

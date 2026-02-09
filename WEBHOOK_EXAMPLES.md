@@ -74,44 +74,6 @@ Q-SYS can receive HTTP commands to trigger Named Controls.
 }
 ```
 
-### Method 2: Using a Q-SYS Lua Script Component
-
-In Q-SYS, create a script component that listens on a port for HTTP requests:
-
-**Q-SYS Script**:
-```lua
--- HTTP Server listener
-server = TcpSocketServer.New()
-server.EventHandler = function(sock)
-  sock.EventHandler = function(s, evt)
-    if evt == TcpSocket.Events.Data then
-      local data = s.Data
-      -- Parse JSON and update control
-      local status = rapidjson.decode(data)
-      Controls[status.location.."_Active"].Boolean = status.is_active
-    end
-  end
-end
-server:Listen(8080)
-```
-
-**Monitor Webhook Configuration**:
-- Method: `POST`
-- URL: `http://qsys-core-ip:8080`
-- Headers:
-```json
-{
-  "Content-Type": "application/json"
-}
-```
-- Body Template:
-```json
-{
-  "location": "{location}",
-  "is_active": {is_active}
-}
-```
-
 ---
 
 ## Crestron/Extron

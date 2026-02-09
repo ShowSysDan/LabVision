@@ -27,6 +27,11 @@ class Monitor(db.Model):
     # Display settings
     enabled = db.Column(db.Boolean, default=True)
     order = db.Column(db.Integer, default=0)
+
+    # TV Display output settings
+    display_enabled = db.Column(db.Boolean, default=False)
+    no_event_text = db.Column(db.String(200), default='No Event')
+    show_countdown = db.Column(db.Boolean, default=True)
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
@@ -46,7 +51,11 @@ class Monitor(db.Model):
             'next_event': json.loads(self.next_event) if self.next_event else None,
             'last_updated': self.last_updated.isoformat() if self.last_updated else None,
             'enabled': self.enabled,
-            'order': self.order
+            'order': self.order,
+            'display_enabled': self.display_enabled,
+            'no_event_text': self.no_event_text or 'No Event',
+            'show_countdown': self.show_countdown,
+            'display_slug': self.name.lower().replace(' ', '-') if self.name else ''
         }
     
     def set_webhook_headers(self, headers_dict):
@@ -60,12 +69,12 @@ class Monitor(db.Model):
 
 class SystemState(db.Model):
     """System-wide state and cached data"""
-    
+
     id = db.Column(db.Integer, primary_key=True)
     key = db.Column(db.String(100), unique=True, nullable=False)
     value = db.Column(db.Text)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     @staticmethod
     def get(key, default=None):
         """Get a value by key"""
@@ -76,19 +85,50 @@ class SystemState(db.Model):
             except:
                 return state.value
         return default
-    
+
     @staticmethod
     def set(key, value):
         """Set a value by key"""
         state = SystemState.query.filter_by(key=key).first()
         if not state:
             state = SystemState(key=key)
-        
+
         if isinstance(value, (dict, list)):
             state.value = json.dumps(value)
         else:
             state.value = str(value)
-        
+
         state.updated_at = datetime.utcnow()
         db.session.add(state)
         db.session.commit()
+
+
+def get_app_settings():
+    """Get all application settings from database, merged with defaults"""
+    from config import DEFAULT_APP_SETTINGS
+    saved = SystemState.get('app_settings', {})
+    # Merge: saved values override defaults
+    settings = dict(DEFAULT_APP_SETTINGS)
+    if saved:
+        settings.update(saved)
+    return settings
+
+
+def save_app_settings(settings):
+    """Save application settings to database"""
+    SystemState.set('app_settings', settings)
+
+
+def get_display_theme():
+    """Get display theme settings from database, merged with defaults"""
+    from config import DEFAULT_DISPLAY_THEME
+    saved = SystemState.get('display_theme', {})
+    theme = dict(DEFAULT_DISPLAY_THEME)
+    if saved:
+        theme.update(saved)
+    return theme
+
+
+def save_display_theme(theme):
+    """Save display theme settings to database"""
+    SystemState.set('display_theme', theme)

@@ -14,6 +14,8 @@
             <div class="header-actions">
                 <button id="addMonitorBtn" class="btn btn-primary">+ Add Monitor</button>
                 <button id="refreshBtn" class="btn btn-secondary">🔄 Refresh Now</button>
+                <button id="settingsBtn" class="btn btn-secondary">⚙️ Settings</button>
+                <a href="/settings/display-theme" class="btn btn-secondary">📺 Display Theme</a>
                 <span id="lastUpdate" class="last-update"></span>
             </div>
         </header>
@@ -88,9 +90,122 @@
                     </div>
                 </div>
 
+                <div class="form-section">
+                    <h3>TV Display Output</h3>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="displayEnabled">
+                            Enable TV Display Page
+                        </label>
+                        <small>Creates a 1920x1080 output page at /display/monitor-name for use on TVs</small>
+                    </div>
+
+                    <div id="displaySettings" style="display: none;">
+                        <div class="form-group">
+                            <label for="noEventText">No Event Text</label>
+                            <input type="text" id="noEventText" placeholder="e.g., Dark, No Reservation, Available">
+                            <small>Text shown when there is no current event (e.g., "Dark" for a theater, "No Reservation" for a loading dock)</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="showCountdown" checked>
+                                Show Countdown to Next Event
+                            </label>
+                            <small>Shows "20min Till Reservation" style countdown when no event is active</small>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
                     <button type="submit" class="btn btn-primary">Save Monitor</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Settings -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Application Settings</h2>
+                <span class="close" id="settingsClose">&times;</span>
+            </div>
+            <form id="settingsForm">
+                <div class="form-section" style="margin-top: 0; padding-top: 0; border-top: none;">
+                    <h3>ArtsVision API Connection</h3>
+
+                    <div class="form-group">
+                        <label for="settingApiKey">API Key *</label>
+                        <input type="password" id="settingApiKey" placeholder="Enter your ArtsVision API key">
+                        <small id="apiKeyHint"></small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="settingApiUrl">API URL</label>
+                        <input type="url" id="settingApiUrl" placeholder="https://av2.artsvision.net/api/getdata">
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="settingVerifySsl" checked>
+                            Verify SSL Certificate
+                        </label>
+                        <small>Disable only for self-signed certificates on trusted networks</small>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>Polling Intervals</h3>
+
+                    <div class="form-group">
+                        <label for="settingApiPollInterval">API Poll Interval (seconds)</label>
+                        <input type="number" id="settingApiPollInterval" min="60" step="1" placeholder="1800">
+                        <small>How often to fetch events from ArtsVision (default: 1800 = 30 minutes)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="settingProcessInterval">Monitor Process Interval (seconds)</label>
+                        <input type="number" id="settingProcessInterval" min="10" step="1" placeholder="60">
+                        <small>How often to re-evaluate monitor states (default: 60 = 1 minute)</small>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>Event Settings</h3>
+
+                    <div class="form-group">
+                        <label for="settingPreShowMinutes">Pre-Show Activation (minutes)</label>
+                        <input type="number" id="settingPreShowMinutes" min="0" step="1" placeholder="30">
+                        <small>Activate monitor this many minutes before event starts</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="settingPostShowMinutes">Post-Show Deactivation (minutes)</label>
+                        <input type="number" id="settingPostShowMinutes" min="0" step="1" placeholder="60">
+                        <small>Keep monitor active this many minutes after event ends</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="settingFilterConfirmed" checked>
+                            Only Show Confirmed Events
+                        </label>
+                        <small>Filter out tentative, canceled, and released events</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="settingDiscoveryDays">Location Discovery Range (days)</label>
+                        <input type="number" id="settingDiscoveryDays" min="1" step="1" placeholder="90">
+                        <small>How far ahead to look for locations (default: 90 days)</small>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="settingsCancelBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Settings</button>
                 </div>
             </form>
         </div>
