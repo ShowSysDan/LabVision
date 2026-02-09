@@ -7,6 +7,7 @@ from config import Config, DEFAULT_APP_SETTINGS, DEFAULT_DISPLAY_THEME
 import logging
 import json
 from datetime import datetime
+from collections import deque
 
 # Configure logging
 logging.basicConfig(
@@ -14,6 +15,35 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+
+# ============================================================================
+# IN-MEMORY LOG BUFFER (for debug page)
+# ============================================================================
+
+class MemoryLogHandler(logging.Handler):
+    """Stores recent log entries in a deque for the debug page"""
+    def __init__(self, capacity=500):
+        super().__init__()
+        self.buffer = deque(maxlen=capacity)
+
+    def emit(self, record):
+        self.buffer.append({
+            'timestamp': datetime.fromtimestamp(record.created).strftime('%Y-%m-%d %H:%M:%S'),
+            'level': record.levelname,
+            'logger': record.name,
+            'message': self.format(record)
+        })
+
+    def get_entries(self, level=None, limit=200):
+        entries = list(self.buffer)
+        if level:
+            entries = [e for e in entries if e['level'] == level.upper()]
+        return entries[-limit:]
+
+log_buffer = MemoryLogHandler(capacity=500)
+log_buffer.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logging.getLogger().addHandler(log_buffer)
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -262,10 +292,29 @@ def get_schema():
 
 @app.route('/api/refresh', methods=['POST'])
 def manual_refresh():
-    """Manually trigger API poll and monitor processing"""
+    """Manually trigger full discovery and API poll"""
     try:
+        settings = get_app_settings()
+        if not settings.get('api_key'):
+            return jsonify({'status': 'error', 'message': 'No API key configured'}), 400
+
+        # Run full discovery (same as init_app does on startup)
+        logger.info("Manual refresh: discovering API schema...")
+        try:
+            poller.discover_api_schema()
+        except Exception as e:
+            logger.warning(f"Schema discovery failed: {e}")
+
+        logger.info("Manual refresh: discovering all locations...")
+        try:
+            locations = poller.discover_all_locations()
+            logger.info(f"Manual refresh: found {len(locations)} locations")
+        except Exception as e:
+            logger.warning(f"Location discovery failed: {e}")
+
+        # Poll today's events and process monitors
         poll_api_task()
-        return jsonify({'status': 'success', 'message': 'Refresh triggered'})
+        return jsonify({'status': 'success', 'message': 'Full refresh complete'})
     except Exception as e:
         logger.error(f"Error in manual refresh: {str(e)}", exc_info=True)
         return jsonify({'status': 'error', 'message': str(e)}), 500
@@ -315,6 +364,7 @@ def update_settings():
 
     try:
         current = get_app_settings()
+        old_api_key = current.get('api_key', '')
 
         # Update each setting if provided
         for key in DEFAULT_APP_SETTINGS:
@@ -333,6 +383,25 @@ def update_settings():
         reschedule_jobs()
 
         logger.info("Application settings updated")
+
+        # If API key was set or changed, trigger full discovery
+        new_api_key = current.get('api_key', '')
+        if new_api_key and new_api_key != old_api_key:
+            logger.info("API key changed — running discovery and initial poll...")
+            try:
+                poller.discover_api_schema()
+            except Exception as e:
+                logger.warning(f"Schema discovery failed: {e}")
+            try:
+                poller.discover_all_locations()
+            except Exception as e:
+                logger.warning(f"Location discovery failed: {e}")
+            try:
+                poller.poll_api()
+                poller.process_monitors()
+            except Exception as e:
+                logger.warning(f"Initial poll failed: {e}")
+
         return jsonify({'status': 'success', 'message': 'Settings saved'})
 
     except Exception as e:
@@ -381,6 +450,74 @@ def reset_display_theme():
     except Exception as e:
         logger.error(f"Error resetting display theme: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 400
+
+
+# ============================================================================
+# DEBUG PAGE
+# ============================================================================
+
+@app.route('/debug')
+def debug_page():
+    """Debug page showing logs, system state, and API diagnostics"""
+    return render_template('debug.html')
+
+
+@app.route('/api/debug/logs', methods=['GET'])
+def get_debug_logs():
+    """Get recent log entries"""
+    level = request.args.get('level')
+    limit = int(request.args.get('limit', 200))
+    entries = log_buffer.get_entries(level=level, limit=limit)
+    return jsonify({'entries': entries, 'total': len(log_buffer.buffer)})
+
+
+@app.route('/api/debug/state', methods=['GET'])
+def get_debug_state():
+    """Get current system state for debugging"""
+    settings = get_app_settings()
+    # Mask API key
+    if settings.get('api_key'):
+        key = settings['api_key']
+        settings['api_key'] = ('*' * max(0, len(key) - 4)) + key[-4:] if len(key) > 4 else '****'
+
+    locations = SystemState.get('all_locations', [])
+    cached_events = SystemState.get('cached_events', [])
+    last_poll = SystemState.get('last_api_poll')
+    entities = SystemState.get('available_entities', [])
+    event_metadata = SystemState.get('event_metadata', [])
+
+    monitors = Monitor.query.order_by(Monitor.order).all()
+
+    # Summarize events by location
+    events_by_location = {}
+    for ev in cached_events:
+        loc = ev.get('location', 'Unknown')
+        events_by_location[loc] = events_by_location.get(loc, 0) + 1
+
+    return jsonify({
+        'settings': settings,
+        'locations_count': len(locations),
+        'locations': sorted(locations),
+        'cached_events_count': len(cached_events),
+        'events_by_location': events_by_location,
+        'last_api_poll': last_poll,
+        'entities': entities,
+        'event_field_count': len(event_metadata[0].get('Fields', [])) if event_metadata else 0,
+        'monitors': [{
+            'id': m.id,
+            'name': m.name,
+            'location': m.location,
+            'enabled': m.enabled,
+            'is_active': m.is_active,
+            'display_enabled': m.display_enabled,
+            'last_updated': m.last_updated.isoformat() if m.last_updated else None
+        } for m in monitors],
+        'scheduler_jobs': [{
+            'id': job.id,
+            'next_run': str(job.next_run_time) if job.next_run_time else None,
+            'trigger': str(job.trigger)
+        } for job in scheduler.get_jobs()]
+    })
 
 
 # ============================================================================
