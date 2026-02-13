@@ -378,8 +378,7 @@
                         <!-- Header -->
                         <div class="pv-header">
                             <div>
-                                <div id="pvMonitorName" style="font-weight:600; letter-spacing:0.02em;">Main Theater Monitor</div>
-                                <div id="pvLocationName">Mainstage Theater</div>
+                                <div id="pvLocationName" style="font-weight:600; letter-spacing:0.02em;">Mainstage Theater</div>
                             </div>
                             <div class="pv-status-badge" id="pvStatusBadge">IN USE</div>
                         </div>
@@ -526,9 +525,8 @@
             }
 
             // Apply sizes
-            document.getElementById('pvMonitorName').style.fontSize = headerNameSize;
-            document.getElementById('pvLocationName').style.fontSize = (parseInt(headerNameSize) * 0.67) + 'px';
-            document.getElementById('pvLocationName').style.color = textDim;
+            document.getElementById('pvLocationName').style.fontSize = headerNameSize;
+            document.getElementById('pvLocationName').style.color = textColor;
             badge.style.fontSize = '24px';
 
             const eventNameEl = document.getElementById('pvEventName');
