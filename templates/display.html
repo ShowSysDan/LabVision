@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=1920, height=1080, initial-scale=1.0">
-    <title>{{ monitor.name }} - Display</title>
+    <title>{{ monitor.location }} - Display</title>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <style>
         * {
@@ -61,11 +61,6 @@
             font-size: var(--header-name-size);
             font-weight: 600;
             letter-spacing: 0.02em;
-        }
-
-        .display-header .location-name {
-            font-size: calc(var(--header-name-size) * 0.67);
-            color: var(--text-dim);
         }
 
         .display-header .status-badge {
@@ -224,8 +219,7 @@
         <!-- Header -->
         <div class="display-header">
             <div>
-                <div class="monitor-name">{{ monitor.name }}</div>
-                <div class="location-name">{{ monitor.location }}</div>
+                <div class="monitor-name">{{ monitor.location }}</div>
             </div>
             <div id="statusBadge" class="status-badge inactive">Inactive</div>
         </div>

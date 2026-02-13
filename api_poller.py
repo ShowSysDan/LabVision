@@ -525,8 +525,8 @@ class ArtsVisionPoller:
             monitors = Monitor.query.filter_by(enabled=True).all()
             logger.info(f"Processing {len(monitors)} monitors...")
             
-            current_time = datetime.utcnow()
-            
+            current_time = datetime.now()
+
             for monitor in monitors:
                 self._update_monitor_state(monitor, current_time)
             
@@ -550,9 +550,9 @@ class ArtsVisionPoller:
                 monitor.is_active = False
                 monitor.current_event = None
                 monitor.next_event = None
-                monitor.last_updated = datetime.utcnow()
+                monitor.last_updated = datetime.now()
                 return
-            
+
             # Find current and next events
             current_event = None
             next_events = []
@@ -598,8 +598,8 @@ class ArtsVisionPoller:
             monitor.is_active = current_event is not None
             monitor.current_event = json.dumps(current_event) if current_event else None
             monitor.next_event = json.dumps(next_events[0]) if next_events else None
-            monitor.last_updated = datetime.utcnow()
-            
+            monitor.last_updated = datetime.now()
+
             # Trigger webhook if state changed
             if monitor.webhook_enabled and was_active != monitor.is_active:
                 self._trigger_webhook(monitor)
