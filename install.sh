@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================================
-# ArtsVision Monitor - Debian/Ubuntu Install Script
+# LabVision - Debian/Ubuntu Install Script
 #
 # Sets up the application as a systemd service that:
 #   - Creates a virtual environment and installs dependencies
@@ -16,10 +16,10 @@
 #   - Configure API key via Settings button in the dashboard
 #
 # Service commands:
-#   sudo systemctl status artsvision-monitor
-#   sudo systemctl restart artsvision-monitor
-#   sudo systemctl stop artsvision-monitor
-#   sudo journalctl -u artsvision-monitor -f
+#   sudo systemctl status labvision
+#   sudo systemctl restart labvision
+#   sudo systemctl stop labvision
+#   sudo journalctl -u labvision -f
 # ============================================================================
 
 set -e
@@ -32,7 +32,7 @@ NC='\033[0m' # No Color
 
 echo ""
 echo "============================================"
-echo "  ArtsVision Monitor - Service Installer"
+echo "  LabVision - Service Installer"
 echo "============================================"
 echo ""
 
@@ -52,7 +52,7 @@ fi
 # Get the directory where this script lives
 INSTALL_DIR="$(cd "$(dirname "$0")" && pwd)"
 VENV_DIR="$INSTALL_DIR/venv"
-SERVICE_NAME="artsvision-monitor"
+SERVICE_NAME="labvision"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 
 echo -e "Install directory: ${GREEN}$INSTALL_DIR${NC}"
@@ -100,7 +100,7 @@ echo -e "${YELLOW}[4/5] Installing systemd service...${NC}"
 
 cat > "$SERVICE_FILE" << SERVICEEOF
 [Unit]
-Description=ArtsVision Monitor Dashboard
+Description=LabVision Monitor Dashboard
 After=network.target
 Wants=network-online.target
 
@@ -158,7 +158,7 @@ if systemctl is-active --quiet "$SERVICE_NAME"; then
     echo "  Dashboard:  http://$(hostname -I | awk '{print $1}'):5000"
     echo ""
     echo "  Next step:  Open the dashboard and click Settings"
-    echo "              to enter your ArtsVision API key."
+    echo "              to enter your API key."
     echo ""
     echo "  Useful commands:"
     echo "    sudo systemctl status $SERVICE_NAME"

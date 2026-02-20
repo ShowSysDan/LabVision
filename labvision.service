@@ -1,19 +1,19 @@
 # This is a reference template. The install.sh script generates the actual
-# service file at /etc/systemd/system/artsvision-monitor.service with the
+# service file at /etc/systemd/system/labvision.service with the
 # correct paths and user filled in automatically.
 #
 # To install as a service, run:
 #   sudo bash install.sh
 #
 # Manual install (if you prefer):
-#   1. Copy this file to /etc/systemd/system/artsvision-monitor.service
+#   1. Copy this file to /etc/systemd/system/labvision.service
 #   2. Replace the placeholder values below
 #   3. sudo systemctl daemon-reload
-#   4. sudo systemctl enable artsvision-monitor
-#   5. sudo systemctl start artsvision-monitor
+#   4. sudo systemctl enable labvision
+#   5. sudo systemctl start labvision
 
 [Unit]
-Description=ArtsVision Monitor Dashboard
+Description=LabVision Monitor Dashboard
 After=network.target
 Wants=network-online.target
 
@@ -21,8 +21,8 @@ Wants=network-online.target
 Type=simple
 User=YOUR_USERNAME
 Group=YOUR_USERNAME
-WorkingDirectory=/path/to/ArtsVisionAPIPull
-ExecStart=/path/to/ArtsVisionAPIPull/venv/bin/python app.py
+WorkingDirectory=/path/to/LabVision
+ExecStart=/path/to/LabVision/venv/bin/python app.py
 Environment="PYTHONUNBUFFERED=1"
 
 Restart=always
@@ -32,10 +32,10 @@ KillSignal=SIGTERM
 
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=artsvision-monitor
+SyslogIdentifier=labvision
 
 NoNewPrivileges=true
-PrivateTmp=true
+ PrivateTmp=true
 
 [Install]
 WantedBy=multi-user.target

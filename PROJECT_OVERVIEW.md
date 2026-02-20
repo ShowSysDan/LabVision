@@ -1,6 +1,6 @@
-# ArtsVision Monitor - Project Overview
+# LabVision - Project Overview
 
-A Python web application for monitoring ArtsVision theater events with a web interface, webhook support, and multi-location monitoring.
+A Python web application for monitoring theater events with a web interface, webhook support, and multi-location monitoring.
 
 ## What's Included
 
@@ -18,11 +18,11 @@ This is a complete, production-ready web application with:
 ## Project Structure
 
 ```
-artsvision-monitor/
+LabVision/
 │
 ├── 📄 Core Application Files
 │   ├── app.py                      # Main Flask application
-│   ├── api_poller.py               # ArtsVision API polling service
+│   ├── api_poller.py               # API polling service
 │   ├── models.py                   # Database models (Monitor, SystemState)
 │   └── config.py                   # Configuration settings
 │
@@ -45,7 +45,7 @@ artsvision-monitor/
 │   └── run.bat                     # Windows startup script
 │
 ├── 🔧 Deployment Files
-│   └── artsvision-monitor.service  # systemd service file (Linux)
+│   └── labvision.service           # systemd service file (Linux)
 │
 └── 📚 Documentation
     ├── README.md                   # Full documentation
@@ -182,7 +182,7 @@ Then open: **http://localhost:5000**
 └──────┬──────┘
        │
 ┌──────▼──────┐
-│ API Poller  │ ← ArtsVision API
+│ API Poller  │ ← API Integration
 └──────┬──────┘
        │
 ┌──────▼──────┐
@@ -205,8 +205,8 @@ All configurable via `.env` file:
 
 ```ini
 # API Settings
-ARTSVISION_API_KEY=xxx
-ARTSVISION_API_URL=xxx
+API_KEY=xxx
+API_URL=xxx
 
 # Timing (in seconds)
 API_POLL_INTERVAL=1800      # How often to poll API
@@ -279,11 +279,11 @@ Internet
 
 **Logs:**
 - Console output (when running manually)
-- systemd journal: `journalctl -u artsvision-monitor -f`
+- systemd journal: `journalctl -u labvision -f`
 - Browser console (F12) for frontend issues
 
 **Database:**
-- SQLite file: `artsvision_monitors.db`
+- SQLite file: `labvision_monitors.db`
 - Backup: Just copy the file
 - Reset: Delete file and restart
 
@@ -327,9 +327,9 @@ Possible additions (not yet implemented):
 
 ## License & Credits
 
-**ArtsVision Monitor Dashboard** - Python web application with web interface and webhook support.
+**LabVision** - Python web application with web interface and webhook support.
 
-This project interfaces with the ArtsVision API for theater management.
+This project provides theater event monitoring with API integration for event management.
 
 ## Need Help?
 
