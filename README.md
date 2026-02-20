@@ -1,6 +1,6 @@
-# ArtsVision Monitor Dashboard
+# LabVision
 
-A Python web application for monitoring ArtsVision theater events with real-time status updates, TV display outputs, webhook notifications, and a modern web interface.
+A Python web application for monitoring theater events with real-time status updates, TV display outputs, webhook notifications, and a modern web interface.
 
 ## Features
 
@@ -8,7 +8,7 @@ A Python web application for monitoring ArtsVision theater events with real-time
 - **Real-Time Updates**: WebSocket-powered live status updates
 - **TV Display Output**: 1920x1080 output pages for TVs near theaters/rooms
 - **Display Theme Editor**: Customize colors, text sizes, and behavior with live preview
-- **Auto-Discovery**: Automatically discovers all locations from ArtsVision API
+- **Auto-Discovery**: Automatically discovers all locations from the API
 - **Webhook Support**: Configure HTTP POST/GET requests per monitor
 - **Smart Activation**: Tracks pre-show and post-show windows
 - **Event Timeline**: Shows current and upcoming events with countdowns
@@ -21,7 +21,7 @@ A Python web application for monitoring ArtsVision theater events with real-time
 
 ```bash
 git clone <repo-url>
-cd ArtsVisionAPIPull
+cd LabVision
 sudo bash install.sh
 ```
 
@@ -33,7 +33,7 @@ After install, open `http://<your-ip>:5000` and click **Settings** to enter your
 
 ```bash
 git clone <repo-url>
-cd ArtsVisionAPIPull
+cd LabVision
 bash run.sh
 ```
 
@@ -43,7 +43,7 @@ Dashboard: `http://localhost:5000`
 
 1. Open the dashboard in your browser
 2. Click **Settings** in the header
-3. Enter your ArtsVision API key and adjust settings as needed
+3. Enter your API key and adjust settings as needed
 4. Click **Save Settings**
 5. Click **Refresh Now** to pull events immediately
 6. Click **+ Add Monitor** to start monitoring locations
@@ -92,8 +92,8 @@ All settings are configured through the dashboard UI (click **Settings**):
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| API Key | (empty) | Your ArtsVision API key |
-| API URL | `https://av2.artsvision.net/api/getdata` | ArtsVision API endpoint |
+| API Key | (empty) | Your API key |
+| API URL | `https://av2.artsvision.net/api/getdata` | API endpoint |
 | Verify SSL | On | Disable for self-signed certificates |
 | API Poll Interval | 1800s (30min) | How often to fetch events |
 | Process Interval | 60s | How often to re-evaluate monitor states |
@@ -110,19 +110,19 @@ After installing with `install.sh`:
 
 ```bash
 # Check status
-sudo systemctl status artsvision-monitor
+sudo systemctl status labvision
 
 # Restart
-sudo systemctl restart artsvision-monitor
+sudo systemctl restart labvision
 
 # Stop
-sudo systemctl stop artsvision-monitor
+sudo systemctl stop labvision
 
 # View live logs
-sudo journalctl -u artsvision-monitor -f
+sudo journalctl -u labvision -f
 
 # View last 50 log lines
-sudo journalctl -u artsvision-monitor --no-pager -n 50
+sudo journalctl -u labvision --no-pager -n 50
 ```
 
 The service:
@@ -135,9 +135,9 @@ The service:
 To update to a new version:
 
 ```bash
-cd ArtsVisionAPIPull
+cd LabVision
 git pull
-sudo systemctl restart artsvision-monitor
+sudo systemctl restart labvision
 ```
 
 Your database (monitors, settings, theme) is preserved across updates - only code files are updated via git.
@@ -145,15 +145,15 @@ Your database (monitors, settings, theme) is preserved across updates - only cod
 ## File Structure
 
 ```
-ArtsVisionAPIPull/
+LabVision/
 ├── app.py                          # Flask application and routes
-├── api_poller.py                   # ArtsVision API polling logic
+├── api_poller.py                   # API polling logic
 ├── models.py                       # Database models (Monitor, SystemState)
 ├── config.py                       # Flask config and setting defaults
 ├── requirements.txt                # Python dependencies
 ├── install.sh                      # One-command Debian service installer
 ├── run.sh                          # Manual startup script
-├── artsvision-monitor.service      # Systemd service template (reference)
+├── labvision.service               # Systemd service template (reference)
 ├── static/
 │   ├── css/style.css               # Dashboard styles
 │   └── js/dashboard.js             # Dashboard JavaScript
@@ -162,7 +162,7 @@ ArtsVisionAPIPull/
 │   ├── display.html                # TV display output page (1920x1080)
 │   └── display_theme_editor.html   # Display theme editor with preview
 └── instance/
-    └── artsvision_monitors.db      # SQLite database (auto-created, not in git)
+    └── labvision_monitors.db       # SQLite database (auto-created, not in git)
 ```
 
 ## API Endpoints
@@ -195,7 +195,7 @@ ArtsVisionAPIPull/
 ### No locations in dropdown
 - Open **Settings** and verify your API key is correct
 - Click **Refresh Now**
-- Check logs: `sudo journalctl -u artsvision-monitor -f`
+- Check logs: `sudo journalctl -u labvision -f`
 
 ### Monitor not activating
 - Verify the event has "Confirmed" status in ArtsVision

@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# ArtsVision Monitor Dashboard - Manual Startup Script
+# LabVision - Manual Startup Script
 # For development or running without systemd.
 # For production, use: sudo bash install.sh
 
-echo "Starting ArtsVision Monitor Dashboard..."
+echo "Starting LabVision..."
 echo "========================================="
 
 # Check if virtual environment exists
