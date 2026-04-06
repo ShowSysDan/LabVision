@@ -6,24 +6,24 @@ db = SQLAlchemy()
 
 class Monitor(db.Model):
     """Monitor configuration for tracking specific locations"""
-    
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     location = db.Column(db.String(200), nullable=False)
-    
+
     # Webhook configuration
     webhook_enabled = db.Column(db.Boolean, default=False)
     webhook_url = db.Column(db.String(500))
     webhook_method = db.Column(db.String(10), default='POST')  # POST or GET
     webhook_headers = db.Column(db.Text)  # JSON string of headers
     webhook_body_template = db.Column(db.Text)  # Template for POST body
-    
+
     # Status tracking
     is_active = db.Column(db.Boolean, default=False)
     current_event = db.Column(db.Text)  # JSON string
     next_event = db.Column(db.Text)  # JSON string
     last_updated = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Display settings
     enabled = db.Column(db.Boolean, default=True)
     order = db.Column(db.Integer, default=0)
@@ -32,9 +32,16 @@ class Monitor(db.Model):
     display_enabled = db.Column(db.Boolean, default=False)
     no_event_text = db.Column(db.String(200), default='No Event')
     show_countdown = db.Column(db.Boolean, default=True)
-    
+
+    # Per-monitor activation window overrides (null = use global setting)
+    pre_show_minutes = db.Column(db.Integer, nullable=True)
+    post_show_minutes = db.Column(db.Integer, nullable=True)
+
+    # QSYS integration — maps this monitor to a QSYS named control (e.g. "WDTActive")
+    qsys_control_name = db.Column(db.String(100), nullable=True)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     def to_dict(self):
         """Convert monitor to dictionary"""
         return {
@@ -55,13 +62,16 @@ class Monitor(db.Model):
             'display_enabled': self.display_enabled,
             'no_event_text': self.no_event_text or 'No Event',
             'show_countdown': self.show_countdown,
-            'display_slug': self.name.lower().replace(' ', '-') if self.name else ''
+            'display_slug': self.name.lower().replace(' ', '-') if self.name else '',
+            'pre_show_minutes': self.pre_show_minutes,
+            'post_show_minutes': self.post_show_minutes,
+            'qsys_control_name': self.qsys_control_name or '',
         }
-    
+
     def set_webhook_headers(self, headers_dict):
         """Set webhook headers from dictionary"""
         self.webhook_headers = json.dumps(headers_dict) if headers_dict else None
-    
+
     def get_webhook_headers(self):
         """Get webhook headers as dictionary"""
         return json.loads(self.webhook_headers) if self.webhook_headers else {}

@@ -63,8 +63,8 @@ echo ""
 echo -e "${YELLOW}[1/5] Checking system dependencies...${NC}"
 apt-get update -qq
 
-# Install python3 and venv if not present
-for pkg in python3 python3-venv python3-pip; do
+# Install python3, venv, and PostgreSQL client libraries
+for pkg in python3 python3-venv python3-pip libpq-dev python3-dev; do
     if ! dpkg -s "$pkg" &>/dev/null; then
         echo "  Installing $pkg..."
         apt-get install -y -qq "$pkg"
@@ -157,8 +157,9 @@ if systemctl is-active --quiet "$SERVICE_NAME"; then
     echo ""
     echo "  Dashboard:  http://$(hostname -I | awk '{print $1}'):5000"
     echo ""
-    echo "  Next step:  Open the dashboard and click Settings"
-    echo "              to enter your API key."
+    echo "  Next step:  1. Edit database.env with your PostgreSQL credentials"
+    echo "              2. Open the dashboard and click Settings"
+    echo "                 to enter your API key."
     echo ""
     echo "  Useful commands:"
     echo "    sudo systemctl status $SERVICE_NAME"

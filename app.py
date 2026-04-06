@@ -180,7 +180,10 @@ def create_monitor():
             order=Monitor.query.count(),
             display_enabled=data.get('display_enabled', False),
             no_event_text=data.get('no_event_text', 'No Event'),
-            show_countdown=data.get('show_countdown', True)
+            show_countdown=data.get('show_countdown', True),
+            pre_show_minutes=data.get('pre_show_minutes') or None,
+            post_show_minutes=data.get('post_show_minutes') or None,
+            qsys_control_name=data.get('qsys_control_name') or None,
         )
 
         if data.get('webhook_headers'):
@@ -219,6 +222,12 @@ def update_monitor(monitor_id):
         monitor.display_enabled = data.get('display_enabled', monitor.display_enabled)
         monitor.no_event_text = data.get('no_event_text', monitor.no_event_text)
         monitor.show_countdown = data.get('show_countdown', monitor.show_countdown)
+        if 'pre_show_minutes' in data:
+            monitor.pre_show_minutes = data['pre_show_minutes'] or None
+        if 'post_show_minutes' in data:
+            monitor.post_show_minutes = data['post_show_minutes'] or None
+        if 'qsys_control_name' in data:
+            monitor.qsys_control_name = data['qsys_control_name'] or None
 
         if 'webhook_headers' in data:
             monitor.set_webhook_headers(data['webhook_headers'])
@@ -337,6 +346,96 @@ def test_webhook(monitor_id):
     except Exception as e:
         logger.error(f"Error testing webhook: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 500
+
+
+# ============================================================================
+# QSYS API
+# ============================================================================
+
+def _fmt_time(iso_str):
+    """Format an ISO datetime string to HH:MM for QSYS display."""
+    if not iso_str:
+        return None
+    try:
+        return datetime.fromisoformat(iso_str).strftime('%H:%M')
+    except Exception:
+        return None
+
+
+def _countdown_str(iso_str, now):
+    """Return a human-readable countdown string from now to iso_str."""
+    if not iso_str:
+        return None
+    try:
+        target = datetime.fromisoformat(iso_str)
+        total_mins = int((target - now).total_seconds() / 60)
+        if total_mins < 0:
+            return 'Past'
+        hours, mins = divmod(total_mins, 60)
+        return f"{hours}h {mins}m" if hours else f"{mins}m"
+    except Exception:
+        return None
+
+
+@app.route('/api/qsys/status', methods=['GET'])
+def get_qsys_status():
+    """
+    QSYS-optimized endpoint.
+
+    Returns a lean JSON payload keyed by QSYS control name so the Lua script
+    can loop the list, set Controls[theater.control].Boolean = theater.is_active,
+    and drop status_text straight into a text control.
+
+    Only monitors that have a qsys_control_name configured are included.
+    """
+    monitors = Monitor.query.filter_by(enabled=True).order_by(Monitor.order).all()
+    now = datetime.now()
+    last_api_poll = SystemState.get('last_api_poll')
+
+    theaters = []
+    for monitor in monitors:
+        if not monitor.qsys_control_name:
+            continue
+
+        current_ev = None
+        if monitor.current_event:
+            ev = json.loads(monitor.current_event)
+            current_ev = {
+                'name': ev.get('name', ''),
+                'in_time': _fmt_time(ev.get('in_time')),
+                'out_time': _fmt_time(ev.get('out_time')),
+                'deactivates_at': _fmt_time(ev.get('deactivation_time')),
+                'deactivates_countdown': _countdown_str(ev.get('deactivation_time'), now),
+            }
+
+        next_ev = None
+        if monitor.next_event:
+            ev = json.loads(monitor.next_event)
+            next_ev = {
+                'name': ev.get('name', ''),
+                'in_time': _fmt_time(ev.get('in_time')),
+                'out_time': _fmt_time(ev.get('out_time')),
+                'activates_at': _fmt_time(ev.get('activation_time')),
+                'activates_countdown': _countdown_str(ev.get('activation_time'), now),
+            }
+
+        theaters.append({
+            'control': monitor.qsys_control_name,
+            'monitor_id': monitor.id,
+            'name': monitor.name,
+            'is_active': monitor.is_active,
+            'current_event': current_ev,
+            'next_event': next_ev,
+        })
+
+    status_text = poller.generate_qsys_status_text(theaters, last_api_poll)
+
+    return jsonify({
+        'timestamp': now.isoformat(),
+        'last_api_poll': last_api_poll,
+        'status_text': status_text,
+        'theaters': theaters,
+    })
 
 
 # ============================================================================
