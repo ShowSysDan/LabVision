@@ -495,7 +495,7 @@ class ArtsVisionPoller:
     def _event_passes_monitor_filters(self, event, monitor):
         """
         Apply per-monitor Public/Private and Ticketed filters to a single event.
-        Returns True if the event should be included for this monitor.
+        Returns (passed: bool, reason: str).  reason is '' when passed=True.
         """
         pp_filter = monitor.public_private_filter or 'any'
         t_filter = monitor.ticketed_filter or 'any'
@@ -504,11 +504,11 @@ class ArtsVisionPoller:
             raw_pp = event.get('public_private')
             pp = str(raw_pp).strip().lower() if raw_pp is not None else ''
             if pp_filter == 'public_only' and pp != 'public':
-                return False
+                return False, f"public_private='{raw_pp}' (filter: public only)"
             elif pp_filter == 'private_only' and pp != 'private':
-                return False
+                return False, f"public_private='{raw_pp}' (filter: private only)"
             elif pp_filter == 'exclude_unset' and pp == '':
-                return False
+                return False, "public_private is unset (filter: exclude unset)"
 
         if t_filter != 'any':
             raw = event.get('ticketed')
@@ -523,13 +523,13 @@ class ArtsVisionPoller:
                 is_unset = t_str == ''
 
             if t_filter == 'ticketed_only' and not is_ticketed:
-                return False
+                return False, f"ticketed='{raw}' (filter: ticketed only)"
             elif t_filter == 'unticketed_only' and not is_unticketed:
-                return False
+                return False, f"ticketed='{raw}' (filter: unticketed only)"
             elif t_filter == 'exclude_unset' and is_unset:
-                return False
+                return False, "ticketed is unset (filter: exclude unset)"
 
-        return True
+        return True, ''
 
     def _update_monitor_state(self, monitor, current_time):
         """Update a single monitor's state"""
@@ -542,11 +542,21 @@ class ArtsVisionPoller:
                 e for e in self.cached_events
                 if e['location'] == monitor.location and e['in_time']
             ]
-            location_events = [
-                e for e in location_all
-                if self._event_passes_monitor_filters(e, monitor)
-            ]
-            monitor.suppressed_count = len(location_all) - len(location_events)
+
+            location_events = []
+            suppressed = []
+            for e in location_all:
+                passed, reason = self._event_passes_monitor_filters(e, monitor)
+                if passed:
+                    location_events.append(e)
+                else:
+                    suppressed.append({'name': e.get('name', 'Unknown'), 'reason': reason})
+                    logger.info(
+                        f"Monitor '{monitor.name}': suppressed '{e.get('name', 'Unknown')}' — {reason}"
+                    )
+
+            monitor.suppressed_count = len(suppressed)
+            monitor.suppressed_events = json.dumps(suppressed) if suppressed else None
 
             if not location_events:
                 monitor.is_active = False

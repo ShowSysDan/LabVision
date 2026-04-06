@@ -48,6 +48,8 @@ class Monitor(db.Model):
 
     # Number of events at this location currently suppressed by the monitor's filters
     suppressed_count = db.Column(db.Integer, default=0)
+    # JSON list of suppressed events with reasons: [{"name": "...", "reason": "..."}]
+    suppressed_events = db.Column(db.Text, nullable=True)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -78,6 +80,7 @@ class Monitor(db.Model):
             'public_private_filter': self.public_private_filter or 'any',
             'ticketed_filter': self.ticketed_filter or 'any',
             'suppressed_count': self.suppressed_count or 0,
+            'suppressed_events': json.loads(self.suppressed_events) if self.suppressed_events else [],
         }
 
     def set_webhook_headers(self, headers_dict):

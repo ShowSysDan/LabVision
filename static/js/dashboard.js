@@ -394,9 +394,18 @@ function createMonitorCard(monitor) {
     const qsysBadge = monitor.qsys_control_name ?
         `<span class="webhook-badge">⚙️ QSYS: ${escapeHtml(monitor.qsys_control_name)}</span>` : '';
 
-    const suppressedBadge = monitor.suppressed_count > 0
-        ? `<span class="suppressed-badge">⚠ ${monitor.suppressed_count} event${monitor.suppressed_count !== 1 ? 's' : ''} suppressed by filter</span>`
-        : '';
+    let suppressedBadge = '';
+    if (monitor.suppressed_count > 0) {
+        const events = monitor.suppressed_events || [];
+        const detailRows = events.map(e =>
+            `<div class="suppressed-detail">• ${escapeHtml(e.name)} — <em>${escapeHtml(e.reason)}</em></div>`
+        ).join('');
+        suppressedBadge = `
+            <div class="suppressed-badge" onclick="this.classList.toggle('expanded')" style="cursor:pointer;">
+                ⚠ ${monitor.suppressed_count} event${monitor.suppressed_count !== 1 ? 's' : ''} suppressed by filter ▾
+                <div class="suppressed-detail-list">${detailRows}</div>
+            </div>`;
+    }
 
     const displaySlug = monitor.display_slug || monitor.name.toLowerCase().replace(/ /g, '-');
     const displayLink = monitor.display_enabled ?
