@@ -92,6 +92,28 @@
                 </div>
 
                 <div class="form-section">
+                    <h3>QSYS Integration</h3>
+
+                    <div class="form-group">
+                        <label for="qsysControlName">QSYS Control Name</label>
+                        <input type="text" id="qsysControlName" placeholder="e.g., WDTActive">
+                        <small>Named control in QSYS that this monitor drives (leave blank if not used)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="preShowMinutes">Pre-Show Activation Override (minutes)</label>
+                        <input type="number" id="preShowMinutes" min="0" step="1" placeholder="Use global default">
+                        <small>Activate this monitor X minutes before the event. Leave blank to use the global setting.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="postShowMinutes">Post-Show Deactivation Override (minutes)</label>
+                        <input type="number" id="postShowMinutes" min="0" step="1" placeholder="Use global default">
+                        <small>Keep this monitor active X minutes after the event ends. Leave blank to use the global setting.</small>
+                    </div>
+                </div>
+
+                <div class="form-section">
                     <h3>TV Display Output</h3>
 
                     <div class="form-group">

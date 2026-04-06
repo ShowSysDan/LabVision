@@ -13,6 +13,7 @@ instance/
 
 # Environment variables
 .env
+database.env
 
 # OS files
 .DS_Store

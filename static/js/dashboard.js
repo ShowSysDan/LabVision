@@ -186,6 +186,10 @@ async function saveMonitor() {
     const noEventText = document.getElementById('noEventText').value;
     const showCountdown = document.getElementById('showCountdown').checked;
 
+    const qsysControlName = document.getElementById('qsysControlName').value.trim();
+    const preShowMinutes = document.getElementById('preShowMinutes').value;
+    const postShowMinutes = document.getElementById('postShowMinutes').value;
+
     const data = {
         name,
         location,
@@ -196,7 +200,10 @@ async function saveMonitor() {
         webhook_body_template: webhookBodyTemplate || null,
         display_enabled: displayEnabled,
         no_event_text: noEventText || 'No Event',
-        show_countdown: showCountdown
+        show_countdown: showCountdown,
+        qsys_control_name: qsysControlName || null,
+        pre_show_minutes: preShowMinutes !== '' ? parseInt(preShowMinutes) : null,
+        post_show_minutes: postShowMinutes !== '' ? parseInt(postShowMinutes) : null,
     };
     
     try {
@@ -375,6 +382,9 @@ function createMonitorCard(monitor) {
     const webhookBadge = monitor.webhook_enabled ?
         '<span class="webhook-badge">🔗 Webhook Enabled</span>' : '';
 
+    const qsysBadge = monitor.qsys_control_name ?
+        `<span class="webhook-badge">⚙️ QSYS: ${escapeHtml(monitor.qsys_control_name)}</span>` : '';
+
     const displaySlug = monitor.display_slug || monitor.name.toLowerCase().replace(/ /g, '-');
     const displayLink = monitor.display_enabled ?
         `<div class="display-link-section">
@@ -411,6 +421,7 @@ function createMonitorCard(monitor) {
                 </div>
 
                 ${webhookBadge}
+                ${qsysBadge}
                 ${monitor.webhook_enabled ?
                     `<button class="btn btn-sm btn-secondary" style="margin-top: 0.5rem;" onclick="testWebhook(${monitor.id})">Test Webhook</button>` :
                     ''}
@@ -451,6 +462,9 @@ function openMonitorModal(monitor = null) {
         document.getElementById('displayEnabled').checked = monitor.display_enabled || false;
         document.getElementById('noEventText').value = monitor.no_event_text || '';
         document.getElementById('showCountdown').checked = monitor.show_countdown !== false;
+        document.getElementById('qsysControlName').value = monitor.qsys_control_name || '';
+        document.getElementById('preShowMinutes').value = monitor.pre_show_minutes != null ? monitor.pre_show_minutes : '';
+        document.getElementById('postShowMinutes').value = monitor.post_show_minutes != null ? monitor.post_show_minutes : '';
 
         toggleWebhookSettings(monitor.webhook_enabled);
         toggleDisplaySettings(monitor.display_enabled || false);

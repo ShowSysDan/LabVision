@@ -1,4 +1,9 @@
 import os
+from dotenv import load_dotenv
+
+# Load database credentials from database.env (ignored by git)
+load_dotenv('database.env')
+
 
 class Config:
     """Flask infrastructure configuration (non-user-facing)"""
@@ -6,8 +11,18 @@ class Config:
     # Flask
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 
-    # Database
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///labvision_monitors.db')
+    # Database — build PostgreSQL URI from database.env fields.
+    # DATABASE_URL in the environment takes precedence (e.g. for Heroku/Docker).
+    _db_host = os.environ.get('DB_HOST', 'localhost')
+    _db_port = os.environ.get('DB_PORT', '5432')
+    _db_name = os.environ.get('DB_NAME', 'labvision')
+    _db_user = os.environ.get('DB_USER', 'labvision')
+    _db_pass = os.environ.get('DB_PASSWORD', '')
+
+    SQLALCHEMY_DATABASE_URI = (
+        os.environ.get('DATABASE_URL') or
+        f"postgresql://{_db_user}:{_db_pass}@{_db_host}:{_db_port}/{_db_name}"
+    )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # WebSocket
