@@ -194,6 +194,8 @@ async function saveMonitor() {
     const qsysControlName = document.getElementById('qsysControlName').value.trim();
     const preShowMinutes = document.getElementById('preShowMinutes').value;
     const postShowMinutes = document.getElementById('postShowMinutes').value;
+    const publicPrivateFilter = document.getElementById('publicPrivateFilter').value;
+    const ticketedFilter = document.getElementById('ticketedFilter').value;
 
     const data = {
         name,
@@ -209,6 +211,8 @@ async function saveMonitor() {
         qsys_control_name: qsysControlName || null,
         pre_show_minutes: preShowMinutes !== '' ? parseInt(preShowMinutes) : null,
         post_show_minutes: postShowMinutes !== '' ? parseInt(postShowMinutes) : null,
+        public_private_filter: publicPrivateFilter,
+        ticketed_filter: ticketedFilter,
     };
     
     try {
@@ -470,6 +474,8 @@ function openMonitorModal(monitor = null) {
         document.getElementById('qsysControlName').value = monitor.qsys_control_name || '';
         document.getElementById('preShowMinutes').value = monitor.pre_show_minutes != null ? monitor.pre_show_minutes : '';
         document.getElementById('postShowMinutes').value = monitor.post_show_minutes != null ? monitor.post_show_minutes : '';
+        document.getElementById('publicPrivateFilter').value = monitor.public_private_filter || 'any';
+        document.getElementById('ticketedFilter').value = monitor.ticketed_filter || 'any';
 
         toggleWebhookSettings(monitor.webhook_enabled);
         toggleDisplaySettings(monitor.display_enabled || false);

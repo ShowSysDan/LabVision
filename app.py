@@ -216,6 +216,8 @@ def create_monitor():
             pre_show_minutes=data.get('pre_show_minutes') or None,
             post_show_minutes=data.get('post_show_minutes') or None,
             qsys_control_name=data.get('qsys_control_name') or None,
+            public_private_filter=data.get('public_private_filter', 'any'),
+            ticketed_filter=data.get('ticketed_filter', 'any'),
         )
 
         if data.get('webhook_headers'):
@@ -260,6 +262,10 @@ def update_monitor(monitor_id):
             monitor.post_show_minutes = data['post_show_minutes'] or None
         if 'qsys_control_name' in data:
             monitor.qsys_control_name = data['qsys_control_name'] or None
+        if 'public_private_filter' in data:
+            monitor.public_private_filter = data['public_private_filter'] or 'any'
+        if 'ticketed_filter' in data:
+            monitor.ticketed_filter = data['ticketed_filter'] or 'any'
 
         if 'webhook_headers' in data:
             monitor.set_webhook_headers(data['webhook_headers'])

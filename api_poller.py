@@ -492,6 +492,44 @@ class ArtsVisionPoller:
             logger.error(f"Error processing monitors: {str(e)}", exc_info=True)
             db.session.rollback()
 
+    def _event_passes_monitor_filters(self, event, monitor):
+        """
+        Apply per-monitor Public/Private and Ticketed filters to a single event.
+        Returns True if the event should be included for this monitor.
+        """
+        pp_filter = monitor.public_private_filter or 'any'
+        t_filter = monitor.ticketed_filter or 'any'
+
+        if pp_filter != 'any':
+            pp = (event.get('public_private') or '').strip().lower()
+            if pp_filter == 'public_only' and pp != 'public':
+                return False
+            elif pp_filter == 'private_only' and pp != 'private':
+                return False
+            elif pp_filter == 'exclude_unset' and pp == '':
+                return False
+
+        if t_filter != 'any':
+            raw = event.get('ticketed')
+            if isinstance(raw, bool):
+                is_ticketed = raw
+                is_unticketed = not raw
+                is_unset = False
+            else:
+                t_str = str(raw).strip().lower() if raw is not None else ''
+                is_ticketed = t_str in ('true', 'yes', 'ticketed')
+                is_unticketed = t_str in ('false', 'no', 'unticketed')
+                is_unset = t_str == ''
+
+            if t_filter == 'ticketed_only' and not is_ticketed:
+                return False
+            elif t_filter == 'unticketed_only' and not is_unticketed:
+                return False
+            elif t_filter == 'exclude_unset' and is_unset:
+                return False
+
+        return True
+
     def _update_monitor_state(self, monitor, current_time):
         """Update a single monitor's state"""
         try:
@@ -501,7 +539,9 @@ class ArtsVisionPoller:
 
             location_events = [
                 e for e in self.cached_events
-                if e['location'] == monitor.location and e['in_time']
+                if e['location'] == monitor.location
+                and e['in_time']
+                and self._event_passes_monitor_filters(e, monitor)
             ]
 
             if not location_events:
