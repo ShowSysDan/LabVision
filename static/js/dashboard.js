@@ -394,6 +394,10 @@ function createMonitorCard(monitor) {
     const qsysBadge = monitor.qsys_control_name ?
         `<span class="webhook-badge">⚙️ QSYS: ${escapeHtml(monitor.qsys_control_name)}</span>` : '';
 
+    const suppressedBadge = monitor.suppressed_count > 0
+        ? `<span class="suppressed-badge">⚠ ${monitor.suppressed_count} event${monitor.suppressed_count !== 1 ? 's' : ''} suppressed by filter</span>`
+        : '';
+
     const displaySlug = monitor.display_slug || monitor.name.toLowerCase().replace(/ /g, '-');
     const displayLink = monitor.display_enabled ?
         `<div class="display-link-section">
@@ -429,6 +433,7 @@ function createMonitorCard(monitor) {
                     ${nextEventHtml}
                 </div>
 
+                ${suppressedBadge}
                 ${webhookBadge}
                 ${qsysBadge}
                 ${monitor.webhook_enabled ?

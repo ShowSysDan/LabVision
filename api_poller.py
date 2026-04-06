@@ -537,12 +537,15 @@ class ArtsVisionPoller:
             pre_minutes = monitor.pre_show_minutes if monitor.pre_show_minutes is not None else self.pre_show_minutes
             post_minutes = monitor.post_show_minutes if monitor.post_show_minutes is not None else self.post_show_minutes
 
-            location_events = [
+            location_all = [
                 e for e in self.cached_events
-                if e['location'] == monitor.location
-                and e['in_time']
-                and self._event_passes_monitor_filters(e, monitor)
+                if e['location'] == monitor.location and e['in_time']
             ]
+            location_events = [
+                e for e in location_all
+                if self._event_passes_monitor_filters(e, monitor)
+            ]
+            monitor.suppressed_count = len(location_all) - len(location_events)
 
             if not location_events:
                 monitor.is_active = False

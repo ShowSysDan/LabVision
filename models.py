@@ -46,6 +46,9 @@ class Monitor(db.Model):
     public_private_filter = db.Column(db.String(20), default='any')
     ticketed_filter = db.Column(db.String(20), default='any')
 
+    # Number of events at this location currently suppressed by the monitor's filters
+    suppressed_count = db.Column(db.Integer, default=0)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
@@ -74,6 +77,7 @@ class Monitor(db.Model):
             'qsys_control_name': self.qsys_control_name or '',
             'public_private_filter': self.public_private_filter or 'any',
             'ticketed_filter': self.ticketed_filter or 'any',
+            'suppressed_count': self.suppressed_count or 0,
         }
 
     def set_webhook_headers(self, headers_dict):
