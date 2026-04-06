@@ -649,6 +649,15 @@ def handle_disconnect():
 def init_app():
     """Initialize the application"""
     with app.app_context():
+        # Ensure the target schema exists before creating tables.
+        # search_path is already set via SQLALCHEMY_ENGINE_OPTIONS so
+        # db.create_all() will place tables in the right schema automatically.
+        import os
+        schema = os.environ.get('DB_SCHEMA', 'public')
+        if schema != 'public':
+            db.session.execute(db.text(f'CREATE SCHEMA IF NOT EXISTS "{schema}"'))
+            db.session.commit()
+
         # Create database tables
         db.create_all()
 
