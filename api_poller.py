@@ -502,7 +502,11 @@ class ArtsVisionPoller:
 
         if pp_filter != 'any':
             raw_pp = event.get('public_private')
-            pp = str(raw_pp).strip().lower() if raw_pp is not None else ''
+            # API returns True/False booleans OR "Public"/"Private" strings
+            if isinstance(raw_pp, bool):
+                pp = 'public' if raw_pp else 'private'
+            else:
+                pp = str(raw_pp).strip().lower() if raw_pp is not None else ''
             if pp_filter == 'public_only' and pp != 'public':
                 return False, f"public_private='{raw_pp}' (filter: public only)"
             elif pp_filter == 'private_only' and pp != 'private':
