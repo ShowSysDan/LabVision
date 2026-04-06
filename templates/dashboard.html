@@ -226,6 +226,29 @@
                     </div>
                 </div>
 
+                <div class="form-section">
+                    <h3>Syslog</h3>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="settingSyslogEnabled">
+                            Enable Syslog
+                        </label>
+                        <small>Send all application logs to a remote syslog server over UDP</small>
+                    </div>
+
+                    <div id="syslogSettings" style="display: none;">
+                        <div class="form-group">
+                            <label for="settingSyslogHost">Syslog Host</label>
+                            <input type="text" id="settingSyslogHost" placeholder="192.168.1.100">
+                        </div>
+                        <div class="form-group">
+                            <label for="settingSyslogPort">Syslog Port</label>
+                            <input type="number" id="settingSyslogPort" min="1" max="65535" placeholder="514">
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="settingsCancelBtn">Cancel</button>
                     <button type="submit" class="btn btn-primary">Save Settings</button>

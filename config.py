@@ -50,6 +50,10 @@ DEFAULT_APP_SETTINGS = {
     'post_show_minutes': 60,
     'filter_confirmed_only': True,
     'location_discovery_days': 90,
+    # Syslog
+    'syslog_enabled': False,
+    'syslog_host': '',
+    'syslog_port': 514,
 }
 
 # Default display theme (stored in database via SystemState as 'display_theme')
