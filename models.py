@@ -40,6 +40,12 @@ class Monitor(db.Model):
     # QSYS integration — maps this monitor to a QSYS named control (e.g. "WDTActive")
     qsys_control_name = db.Column(db.String(100), nullable=True)
 
+    # Per-monitor event filtering
+    # public_private_filter: 'any' | 'public_only' | 'private_only' | 'exclude_unset'
+    # ticketed_filter:        'any' | 'ticketed_only' | 'unticketed_only' | 'exclude_unset'
+    public_private_filter = db.Column(db.String(20), default='any')
+    ticketed_filter = db.Column(db.String(20), default='any')
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
@@ -66,6 +72,8 @@ class Monitor(db.Model):
             'pre_show_minutes': self.pre_show_minutes,
             'post_show_minutes': self.post_show_minutes,
             'qsys_control_name': self.qsys_control_name or '',
+            'public_private_filter': self.public_private_filter or 'any',
+            'ticketed_filter': self.ticketed_filter or 'any',
         }
 
     def set_webhook_headers(self, headers_dict):

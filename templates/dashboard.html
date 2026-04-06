@@ -92,6 +92,31 @@
                 </div>
 
                 <div class="form-section">
+                    <h3>Event Filtering</h3>
+                    <p><small>Filter which events activate this monitor. The global "Confirmed only" setting still applies.</small></p>
+
+                    <div class="form-group">
+                        <label for="publicPrivateFilter">Public / Private</label>
+                        <select id="publicPrivateFilter">
+                            <option value="any">Any (no filter)</option>
+                            <option value="public_only">Public only</option>
+                            <option value="private_only">Private only</option>
+                            <option value="exclude_unset">Exclude unset</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ticketedFilter">Ticketed</label>
+                        <select id="ticketedFilter">
+                            <option value="any">Any (no filter)</option>
+                            <option value="ticketed_only">Ticketed only</option>
+                            <option value="unticketed_only">Unticketed only</option>
+                            <option value="exclude_unset">Exclude unset</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-section">
                     <h3>QSYS Integration</h3>
 
                     <div class="form-group">
