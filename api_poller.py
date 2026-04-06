@@ -501,7 +501,8 @@ class ArtsVisionPoller:
         t_filter = monitor.ticketed_filter or 'any'
 
         if pp_filter != 'any':
-            pp = (event.get('public_private') or '').strip().lower()
+            raw_pp = event.get('public_private')
+            pp = str(raw_pp).strip().lower() if raw_pp is not None else ''
             if pp_filter == 'public_only' and pp != 'public':
                 return False
             elif pp_filter == 'private_only' and pp != 'private':
