@@ -18,12 +18,21 @@ class Config:
     _db_name = os.environ.get('DB_NAME', 'labvision')
     _db_user = os.environ.get('DB_USER', 'labvision')
     _db_pass = os.environ.get('DB_PASSWORD', '')
+    _db_schema = os.environ.get('DB_SCHEMA', 'public')
 
     SQLALCHEMY_DATABASE_URI = (
         os.environ.get('DATABASE_URL') or
         f"postgresql://{_db_user}:{_db_pass}@{_db_host}:{_db_port}/{_db_name}"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # Set search_path so all tables land in the configured schema.
+    # db.create_all() will also create the schema if it doesn't exist (see init_app).
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'connect_args': {
+            'options': f'-csearch_path={_db_schema}'
+        }
+    }
 
     # WebSocket
     SOCKETIO_ASYNC_MODE = 'threading'
