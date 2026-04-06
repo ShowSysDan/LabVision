@@ -5,6 +5,7 @@ from models import db, Monitor, SystemState, get_app_settings, save_app_settings
 from api_poller import ArtsVisionPoller
 from config import Config, DEFAULT_APP_SETTINGS, DEFAULT_DISPLAY_THEME
 import logging
+import logging.handlers
 import json
 from datetime import datetime
 from collections import deque
@@ -15,6 +16,37 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+
+# ============================================================================
+# SYSLOG
+# ============================================================================
+
+_syslog_handler = None
+
+
+def setup_syslog(settings):
+    """Add or remove a UDP syslog handler based on current settings."""
+    global _syslog_handler
+    root = logging.getLogger()
+
+    if _syslog_handler:
+        root.removeHandler(_syslog_handler)
+        _syslog_handler = None
+
+    if settings.get('syslog_enabled') and settings.get('syslog_host'):
+        host = settings['syslog_host'].strip()
+        port = int(settings.get('syslog_port') or 514)
+        try:
+            handler = logging.handlers.SysLogHandler(address=(host, port))
+            handler.setFormatter(logging.Formatter(
+                'LabVision %(levelname)s %(name)s: %(message)s'
+            ))
+            root.addHandler(handler)
+            _syslog_handler = handler
+            logger.info(f"Syslog enabled → {host}:{port}")
+        except Exception as e:
+            logger.error(f"Failed to set up syslog ({host}:{port}): {e}")
 
 
 # ============================================================================
@@ -481,6 +513,9 @@ def update_settings():
         # Reschedule jobs if intervals changed
         reschedule_jobs()
 
+        # Reconfigure syslog if those settings changed
+        setup_syslog(current)
+
         logger.info("Application settings updated")
 
         # If API key was set or changed, trigger full discovery
@@ -678,6 +713,9 @@ def init_app():
 
         # Load settings for startup
         settings = get_app_settings()
+
+        # Configure syslog if enabled
+        setup_syslog(settings)
         api_interval = int(settings.get('api_poll_interval', 1800))
         process_interval = int(settings.get('process_interval', 60))
 

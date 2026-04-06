@@ -105,6 +105,11 @@ function setupEventListeners() {
         saveSettings();
     });
     
+    // Syslog enabled checkbox
+    document.getElementById('settingSyslogEnabled').addEventListener('change', function() {
+        toggleSyslogSettings(this.checked);
+    });
+
     // Webhook enabled checkbox
     document.getElementById('webhookEnabled').addEventListener('change', function() {
         toggleWebhookSettings(this.checked);
@@ -501,6 +506,10 @@ function toggleDisplaySettings(enabled) {
     settings.style.display = enabled ? 'block' : 'none';
 }
 
+function toggleSyslogSettings(enabled) {
+    document.getElementById('syslogSettings').style.display = enabled ? 'block' : 'none';
+}
+
 // ============================================================================
 // Settings Management
 // ============================================================================
@@ -527,6 +536,12 @@ async function openSettingsModal() {
         document.getElementById('settingFilterConfirmed').checked = settings.filter_confirmed_only !== false;
         document.getElementById('settingDiscoveryDays').value = settings.location_discovery_days || 90;
 
+        const syslogEnabled = settings.syslog_enabled || false;
+        document.getElementById('settingSyslogEnabled').checked = syslogEnabled;
+        document.getElementById('settingSyslogHost').value = settings.syslog_host || '';
+        document.getElementById('settingSyslogPort').value = settings.syslog_port || 514;
+        toggleSyslogSettings(syslogEnabled);
+
     } catch (error) {
         console.error('Error loading settings:', error);
     }
@@ -551,6 +566,10 @@ async function saveSettings() {
         filter_confirmed_only: document.getElementById('settingFilterConfirmed').checked,
         location_discovery_days: parseInt(document.getElementById('settingDiscoveryDays').value) || 90
     };
+
+    data.syslog_enabled = document.getElementById('settingSyslogEnabled').checked;
+    data.syslog_host = document.getElementById('settingSyslogHost').value.trim();
+    data.syslog_port = parseInt(document.getElementById('settingSyslogPort').value) || 514;
 
     // Only send api_key if the user typed a new one
     if (apiKey && !apiKey.startsWith('*')) {
