@@ -560,6 +560,7 @@ async function openSettingsModal() {
         document.getElementById('settingSyslogEnabled').checked = syslogEnabled;
         document.getElementById('settingSyslogHost').value = settings.syslog_host || '';
         document.getElementById('settingSyslogPort').value = settings.syslog_port || 514;
+        document.getElementById('settingSyslogLevel').value = settings.syslog_level || 'error';
         toggleSyslogSettings(syslogEnabled);
 
     } catch (error) {
@@ -590,6 +591,7 @@ async function saveSettings() {
     data.syslog_enabled = document.getElementById('settingSyslogEnabled').checked;
     data.syslog_host = document.getElementById('settingSyslogHost').value.trim();
     data.syslog_port = parseInt(document.getElementById('settingSyslogPort').value) || 514;
+    data.syslog_level = document.getElementById('settingSyslogLevel').value;
 
     // Only send api_key if the user typed a new one
     if (apiKey && !apiKey.startsWith('*')) {

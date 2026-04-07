@@ -271,6 +271,15 @@
                             <label for="settingSyslogPort">Syslog Port</label>
                             <input type="number" id="settingSyslogPort" min="1" max="65535" placeholder="514">
                         </div>
+                        <div class="form-group">
+                            <label for="settingSyslogLevel">Log Level</label>
+                            <select id="settingSyslogLevel">
+                                <option value="error">Errors only</option>
+                                <option value="warning">Warnings &amp; errors</option>
+                                <option value="info">Everything (info+)</option>
+                            </select>
+                            <small>Controls which log levels are forwarded to the remote syslog server</small>
+                        </div>
                     </div>
                 </div>
 

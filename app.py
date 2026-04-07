@@ -24,6 +24,12 @@ logger = logging.getLogger(__name__)
 
 _syslog_handler = None
 
+_SYSLOG_LEVELS = {
+    'error':   logging.ERROR,
+    'warning': logging.WARNING,
+    'info':    logging.INFO,
+}
+
 
 def setup_syslog(settings):
     """Add or remove a UDP syslog handler based on current settings."""
@@ -37,14 +43,17 @@ def setup_syslog(settings):
     if settings.get('syslog_enabled') and settings.get('syslog_host'):
         host = settings['syslog_host'].strip()
         port = int(settings.get('syslog_port') or 514)
+        level_name = settings.get('syslog_level', 'error')
+        level = _SYSLOG_LEVELS.get(level_name, logging.ERROR)
         try:
             handler = logging.handlers.SysLogHandler(address=(host, port))
+            handler.setLevel(level)
             handler.setFormatter(logging.Formatter(
                 'LabVision %(levelname)s %(name)s: %(message)s'
             ))
             root.addHandler(handler)
             _syslog_handler = handler
-            logger.info(f"Syslog enabled → {host}:{port}")
+            logger.info(f"Syslog enabled → {host}:{port} (level: {level_name.upper()})")
         except Exception as e:
             logger.error(f"Failed to set up syslog ({host}:{port}): {e}")
 
