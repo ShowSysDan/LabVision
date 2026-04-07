@@ -54,6 +54,7 @@ DEFAULT_APP_SETTINGS = {
     'syslog_enabled': False,
     'syslog_host': '',
     'syslog_port': 514,
+    'syslog_level': 'error',   # 'error', 'warning', or 'info'
 }
 
 # Default display theme (stored in database via SystemState as 'display_theme')
