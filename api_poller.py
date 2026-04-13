@@ -183,6 +183,27 @@ class ArtsVisionPoller:
 
             data = self._make_api_request('getdata', method='POST', payload=payload)
 
+            # Stash the raw poll (request + response) so the debug page can
+            # show exactly what ArtsVision returned. Only the last poll is
+            # kept to bound storage.
+            try:
+                SystemState.set('last_raw_poll', {
+                    'timestamp_local': datetime.now().isoformat(timespec='seconds'),
+                    'timestamp_utc': datetime.utcnow().isoformat(timespec='seconds'),
+                    'endpoint': 'getdata',
+                    'date_range': {
+                        'from_inclusive': yesterday,
+                        'to_exclusive': tomorrow,
+                    },
+                    'request_payload': payload,
+                    'response_ok': data is not None,
+                    # _make_api_request already unwraps {Status, Data} and
+                    # returns Data on success, or None on failure.
+                    'response_data': data,
+                })
+            except Exception as cap_err:
+                logger.warning(f"Could not store raw poll: {cap_err}")
+
             if data:
                 self.process_api_response(data)
                 return True

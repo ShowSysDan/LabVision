@@ -145,6 +145,23 @@
             </div>
         </div>
 
+        <!-- Raw API poll viewer -->
+        <div class="debug-card full-width">
+            <h2>Raw API Poll</h2>
+            <div class="log-controls">
+                <button onclick="refreshRawPoll()">↻ Refresh</button>
+                <button id="btnPollNow" onclick="triggerPollNow()">⚡ Poll Now</button>
+                <button onclick="copyRawPoll()">📋 Copy JSON</button>
+                <button onclick="downloadRawPoll()">⬇ Download</button>
+                <span id="rawPollMeta" class="log-count"></span>
+            </div>
+            <div id="rawPollSummary" style="margin-bottom: 10px; font-size: 13px; color: #94a3b8;"></div>
+            <details id="rawPollDetails">
+                <summary style="cursor:pointer; color:#94a3b8; font-size:13px;">Show full JSON response</summary>
+                <pre id="rawPollBody" class="log-entries" style="margin-top: 8px;">No poll captured yet.</pre>
+            </details>
+        </div>
+
         <!-- Log viewer -->
         <div class="debug-card full-width">
             <h2>Application Logs</h2>
@@ -323,6 +340,103 @@
         }
 
         // =====================================================================
+        // Raw API Poll Viewer
+        // =====================================================================
+
+        let _lastRawPollJson = null;
+
+        async function refreshRawPoll() {
+            try {
+                const resp = await fetch('/api/debug/raw-poll');
+                const data = await resp.json();
+                renderRawPoll(data);
+            } catch (e) {
+                console.error('Error loading raw poll:', e);
+                document.getElementById('rawPollBody').textContent =
+                    'Error loading raw poll: ' + e.message;
+            }
+        }
+
+        function renderRawPoll(data) {
+            const summary = document.getElementById('rawPollSummary');
+            const body = document.getElementById('rawPollBody');
+            const meta = document.getElementById('rawPollMeta');
+
+            if (!data.present) {
+                summary.textContent = '';
+                meta.textContent = 'No poll captured yet';
+                body.textContent = 'No poll captured yet. Click "Poll Now" or wait for the scheduled poll.';
+                _lastRawPollJson = null;
+                return;
+            }
+
+            const poll = data.poll;
+            _lastRawPollJson = JSON.stringify(poll, null, 2);
+
+            const resp = poll.response_data;
+            let rowCount = null;
+            let totalCount = null;
+            if (Array.isArray(resp) && resp.length > 0) {
+                rowCount = (resp[0].Rows || []).length;
+                totalCount = resp[0].TotalCount;
+            }
+
+            const dr = poll.date_range || {};
+            summary.innerHTML = `
+                <div><strong>Captured:</strong> ${escapeHtml(poll.timestamp_local || '')}
+                    (UTC ${escapeHtml(poll.timestamp_utc || '')})</div>
+                <div><strong>Date filter:</strong> ${escapeHtml(dr.from_inclusive || '?')} &le; Date &lt;
+                    ${escapeHtml(dr.to_exclusive || '?')}</div>
+                <div><strong>Response:</strong> ${poll.response_ok ? 'OK' : '<span style="color:#ef4444;">FAILED</span>'}
+                    ${rowCount !== null ? `— ${rowCount} rows returned, ${totalCount ?? '?'} total on server` : ''}</div>
+            `;
+
+            meta.textContent = `${_lastRawPollJson.length.toLocaleString()} chars`;
+            body.textContent = _lastRawPollJson;
+        }
+
+        async function triggerPollNow() {
+            const btn = document.getElementById('btnPollNow');
+            const orig = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = '… Polling';
+            try {
+                const resp = await fetch('/api/debug/poll-now', { method: 'POST' });
+                const data = await resp.json();
+                if (data.status !== 'success') {
+                    alert('Poll failed: ' + (data.message || 'unknown'));
+                }
+                await refreshRawPoll();
+                await loadState();
+            } catch (e) {
+                alert('Poll request error: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = orig;
+            }
+        }
+
+        function copyRawPoll() {
+            if (!_lastRawPollJson) { alert('No poll captured yet'); return; }
+            navigator.clipboard.writeText(_lastRawPollJson)
+                .then(() => { /* silent success */ })
+                .catch(err => alert('Copy failed: ' + err));
+        }
+
+        function downloadRawPoll() {
+            if (!_lastRawPollJson) { alert('No poll captured yet'); return; }
+            const blob = new Blob([_lastRawPollJson], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'artsvision-raw-poll-' + Date.now() + '.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // =====================================================================
         // Log Viewer
         // =====================================================================
 
@@ -397,6 +511,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadState();
             refreshLogs();
+            refreshRawPoll();
             toggleAutoRefresh();
         });
     </script>
