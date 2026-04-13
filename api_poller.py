@@ -306,7 +306,13 @@ class ArtsVisionPoller:
                     # Midnight rollover: if OUT parses to a moment before IN,
                     # the event crosses midnight — shift OUT to the next day.
                     if in_time and out_time and out_time < in_time:
+                        original_out = out_time
                         out_time = out_time + timedelta(days=1)
+                        logger.debug(
+                            f"Midnight rollover for '{event_name}' at {location}: "
+                            f"OUT {original_out.isoformat()} < IN {in_time.isoformat()}, "
+                            f"shifted OUT to {out_time.isoformat()}"
+                        )
 
                 event_obj = {
                     'location': location,
