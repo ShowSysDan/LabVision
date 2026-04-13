@@ -97,6 +97,23 @@
         .ebl-table { margin: 4px 0 10px; font-size: 12px; }
         .ebl-table th, .ebl-table td { padding: 4px 8px; }
         .ebl-table td.muted { color: #64748b; }
+
+        /* Raw API Poll JSON syntax highlighting */
+        #rawPollBody {
+            color: #cbd5e1;
+            font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+            font-size: 12px;
+            line-height: 1.55;
+            white-space: pre;
+            word-break: normal;
+            overflow: auto;
+            max-height: 600px;
+        }
+        #rawPollBody .jn-key    { color: #93c5fd; }  /* keys - light blue */
+        #rawPollBody .jn-string { color: #86efac; }  /* strings - green */
+        #rawPollBody .jn-number { color: #fcd34d; }  /* numbers - amber */
+        #rawPollBody .jn-bool   { color: #f9a8d4; font-weight: 600; } /* bool - pink */
+        #rawPollBody .jn-null   { color: #64748b; font-style: italic; }
     </style>
 </head>
 <body>
@@ -392,7 +409,27 @@
             `;
 
             meta.textContent = `${_lastRawPollJson.length.toLocaleString()} chars`;
-            body.textContent = _lastRawPollJson;
+            body.innerHTML = syntaxHighlightJson(_lastRawPollJson);
+        }
+
+        // Tiny JSON syntax highlighter — escapes HTML first, then wraps
+        // keys/strings/numbers/booleans/null in spans for CSS coloring.
+        function syntaxHighlightJson(jsonText) {
+            const escaped = escapeHtml(jsonText);
+            return escaped.replace(
+                /("(\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g,
+                (match) => {
+                    let cls = 'jn-number';
+                    if (/^"/.test(match)) {
+                        cls = /:$/.test(match) ? 'jn-key' : 'jn-string';
+                    } else if (/true|false/.test(match)) {
+                        cls = 'jn-bool';
+                    } else if (/null/.test(match)) {
+                        cls = 'jn-null';
+                    }
+                    return `<span class="${cls}">${match}</span>`;
+                }
+            );
         }
 
         async function triggerPollNow() {
