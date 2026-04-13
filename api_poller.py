@@ -296,8 +296,23 @@ class ArtsVisionPoller:
 
                     logger.debug(f"All-day event: {event_name} at {location} (active 24 hours)")
                 else:
-                    in_time = self._parse_timestamp(start_time) if start_time else None
-                    out_time = self._parse_timestamp(end_time) if end_time else None
+                    # Pass the event's own Date field so that time-only values
+                    # (ArtsVision returns them as 1900-01-01T…) get attached to
+                    # the correct calendar day instead of defaulting to today.
+                    event_date_raw = event_data.get('Date', '')
+                    in_time = self._parse_timestamp(start_time, event_date=event_date_raw) if start_time else None
+                    out_time = self._parse_timestamp(end_time, event_date=event_date_raw) if end_time else None
+
+                    # Midnight rollover: if OUT parses to a moment before IN,
+                    # the event crosses midnight — shift OUT to the next day.
+                    if in_time and out_time and out_time < in_time:
+                        original_out = out_time
+                        out_time = out_time + timedelta(days=1)
+                        logger.debug(
+                            f"Midnight rollover for '{event_name}' at {location}: "
+                            f"OUT {original_out.isoformat()} < IN {in_time.isoformat()}, "
+                            f"shifted OUT to {out_time.isoformat()}"
+                        )
 
                 event_obj = {
                     'location': location,
@@ -773,8 +788,16 @@ class ArtsVisionPoller:
             return value
         return None
 
-    def _parse_timestamp(self, timestamp_str):
-        """Parse timestamp string to datetime"""
+    def _parse_timestamp(self, timestamp_str, event_date=None):
+        """Parse timestamp string to datetime.
+
+        ArtsVision returns time-only values (Start Time, End Time, IN Time,
+        OUT Time) as ``1900-01-01T<hh:mm:ss>`` — the date portion is a
+        sentinel, not a real date. When we detect year==1900, we attach the
+        event's real calendar date (from its ``Date`` field) rather than
+        falling back to "today", which caused every time-only event to
+        appear on the current day regardless of when it actually occurred.
+        """
         if not timestamp_str or not isinstance(timestamp_str, str):
             return None
 
@@ -783,10 +806,26 @@ class ArtsVisionPoller:
                 try:
                     dt = datetime.strptime(timestamp_str, fmt)
 
-                    # If year is 1900, use today's date
                     if dt.year == 1900:
-                        today = datetime.now()
-                        dt = dt.replace(year=today.year, month=today.month, day=today.day)
+                        date_obj = None
+                        if event_date:
+                            if isinstance(event_date, datetime):
+                                date_obj = event_date
+                            elif isinstance(event_date, str) and event_date:
+                                for dfmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%d"):
+                                    try:
+                                        date_obj = datetime.strptime(event_date, dfmt)
+                                        break
+                                    except ValueError:
+                                        continue
+                        if date_obj is None:
+                            logger.warning(
+                                f"Time-only value '{timestamp_str}' had no event "
+                                f"Date to anchor to; defaulting to today."
+                            )
+                            date_obj = datetime.now()
+
+                        dt = dt.replace(year=date_obj.year, month=date_obj.month, day=date_obj.day)
 
                     return dt
                 except ValueError:
