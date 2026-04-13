@@ -621,6 +621,33 @@ def get_debug_logs():
     return jsonify({'entries': entries, 'total': len(log_buffer.buffer)})
 
 
+@app.route('/api/debug/raw-poll', methods=['GET'])
+def get_debug_raw_poll():
+    """Return the raw request/response from the most recent API poll."""
+    raw = SystemState.get('last_raw_poll')
+    if not raw:
+        return jsonify({'present': False}), 200
+    return jsonify({'present': True, 'poll': raw}), 200
+
+
+@app.route('/api/debug/poll-now', methods=['POST'])
+def debug_poll_now():
+    """Trigger a single API poll immediately (no schema/location discovery)."""
+    try:
+        settings = get_app_settings()
+        if not settings.get('api_key'):
+            return jsonify({'status': 'error', 'message': 'No API key configured'}), 400
+        ok = poller.poll_api()
+        if ok:
+            # Also re-run monitor evaluation so "stuck" monitors update.
+            poller.process_monitors()
+        return jsonify({'status': 'success' if ok else 'error',
+                        'message': 'Poll complete' if ok else 'Poll failed (see logs)'}), 200
+    except Exception as e:
+        logger.error(f"Error triggering debug poll: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
 @app.route('/api/debug/state', methods=['GET'])
 def get_debug_state():
     """Get current system state for debugging"""
