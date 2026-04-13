@@ -7,6 +7,7 @@ from config import Config, DEFAULT_APP_SETTINGS, DEFAULT_DISPLAY_THEME
 import logging
 import logging.handlers
 import json
+import time
 from datetime import datetime
 from collections import deque
 
@@ -637,11 +638,34 @@ def get_debug_state():
 
     monitors = Monitor.query.order_by(Monitor.order).all()
 
-    # Summarize events by location
+    # Group cached events by location with full details so the debug page can
+    # display event names, start/stop times, and the fields that drive monitor
+    # state. This replaces the previous per-location count-only summary.
     events_by_location = {}
     for ev in cached_events:
         loc = ev.get('location', 'Unknown')
-        events_by_location[loc] = events_by_location.get(loc, 0) + 1
+        events_by_location.setdefault(loc, []).append({
+            'name': ev.get('name'),
+            'in_time': ev.get('in_time'),
+            'out_time': ev.get('out_time'),
+            'is_all_day': ev.get('is_all_day', False),
+            'status': ev.get('status'),
+            'public_private': ev.get('public_private'),
+            'ticketed': ev.get('ticketed'),
+            'date': ev.get('date'),
+        })
+
+    # Sort each location's events by in_time (None last) so the earliest
+    # upcoming event is at the top when a location is expanded.
+    for loc in events_by_location:
+        events_by_location[loc].sort(
+            key=lambda e: (e['in_time'] is None, e['in_time'] or '')
+        )
+
+    # Surface server wall-clock times so "day off" issues (local vs UTC,
+    # timezone drift) are visible on the debug page.
+    now_local = datetime.now()
+    now_utc = datetime.utcnow()
 
     return jsonify({
         'settings': settings,
@@ -650,6 +674,9 @@ def get_debug_state():
         'cached_events_count': len(cached_events),
         'events_by_location': events_by_location,
         'last_api_poll': last_poll,
+        'server_time_local': now_local.isoformat(timespec='seconds'),
+        'server_time_utc': now_utc.isoformat(timespec='seconds'),
+        'server_tz': time.strftime('%Z'),
         'entities': entities,
         'event_field_count': len(event_metadata[0].get('Fields', [])) if event_metadata else 0,
         'monitors': [{

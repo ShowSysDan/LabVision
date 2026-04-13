@@ -78,6 +78,25 @@
 
         .auto-refresh-toggle { display: flex; align-items: center; gap: 8px; }
         .auto-refresh-toggle label { color: #94a3b8; font-size: 13px; cursor: pointer; }
+
+        /* Events by Location - expandable per-location event tables */
+        .ebl-loc { border-bottom: 1px solid #334155; padding: 2px 0; }
+        .ebl-loc:last-child { border-bottom: none; }
+        .ebl-loc > summary {
+            display: flex; justify-content: space-between; align-items: center;
+            cursor: pointer; list-style: none; padding: 8px 0;
+        }
+        .ebl-loc > summary::-webkit-details-marker { display: none; }
+        .ebl-loc > summary::before {
+            content: '▸'; color: #64748b; margin-right: 8px;
+            transition: transform 0.1s;
+        }
+        .ebl-loc[open] > summary::before { content: '▾'; color: #94a3b8; }
+        .ebl-loc[open] > summary { color: #f8fafc; }
+        .ebl-loc .ebl-summary-main { flex: 1; }
+        .ebl-table { margin: 4px 0 10px; font-size: 12px; }
+        .ebl-table th, .ebl-table td { padding: 4px 8px; }
+        .ebl-table td.muted { color: #64748b; }
     </style>
 </head>
 <body>
@@ -171,11 +190,14 @@
             const s = state.settings;
             const hasKey = s.api_key && !s.api_key.startsWith('****') && s.api_key !== '';
             const keyDisplay = s.api_key || '(not set)';
+            const tzSuffix = state.server_tz ? ' ' + escapeHtml(state.server_tz) : '';
             document.getElementById('apiState').innerHTML = `
                 <div class="stat-row"><span class="stat-label">API Key</span><span class="stat-value ${hasKey ? 'good' : 'error'}">${keyDisplay}</span></div>
                 <div class="stat-row"><span class="stat-label">API URL</span><span class="stat-value">${s.api_url || '(not set)'}</span></div>
                 <div class="stat-row"><span class="stat-label">SSL Verify</span><span class="stat-value">${s.verify_ssl ? 'On' : 'Off'}</span></div>
                 <div class="stat-row"><span class="stat-label">Last Poll</span><span class="stat-value">${state.last_api_poll || 'Never'}</span></div>
+                <div class="stat-row"><span class="stat-label">Server Time (local)</span><span class="stat-value">${escapeHtml(state.server_time_local || '')}${tzSuffix}</span></div>
+                <div class="stat-row"><span class="stat-label">Server Time (UTC)</span><span class="stat-value">${escapeHtml(state.server_time_utc || '')}</span></div>
             `;
         }
 
@@ -232,16 +254,72 @@
             `;
         }
 
+        function fmtDateTime(iso) {
+            if (!iso) return '<span class="muted">—</span>';
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) return escapeHtml(iso);
+            return d.toLocaleString();
+        }
+
+        function fmtOrDash(v) {
+            if (v === null || v === undefined || v === '') return '<span class="muted">—</span>';
+            return escapeHtml(String(v));
+        }
+
+        // Remember which locations are expanded so auto-refresh doesn't
+        // collapse them every 5 seconds.
+        const _eblOpenLocs = new Set();
+
         function renderEventsCard(state) {
             const ebl = state.events_by_location;
+            const container = document.getElementById('eventsState');
             if (!ebl || Object.keys(ebl).length === 0) {
-                document.getElementById('eventsState').innerHTML = '<div class="stat-value warn">No cached events</div>';
+                container.innerHTML = '<div class="stat-value warn">No cached events</div>';
                 return;
             }
-            const sorted = Object.entries(ebl).sort((a, b) => b[1] - a[1]);
-            document.getElementById('eventsState').innerHTML = sorted.map(([loc, count]) => `
-                <div class="stat-row"><span class="stat-label">${loc}</span><span class="stat-value">${count}</span></div>
-            `).join('');
+            // events_by_location is now { location: [event, ...] }. Sort
+            // locations by event count desc, then name asc.
+            const entries = Object.entries(ebl).sort(
+                (a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0])
+            );
+            container.innerHTML = entries.map(([loc, evs]) => {
+                const isOpen = _eblOpenLocs.has(loc) ? ' open' : '';
+                const rows = evs.map(e => `
+                    <tr>
+                        <td>${escapeHtml(e.name || '(untitled)')}</td>
+                        <td>${e.is_all_day ? '<em class="muted">All Day</em>' : fmtDateTime(e.in_time)}</td>
+                        <td>${e.is_all_day ? '<em class="muted">All Day</em>' : fmtDateTime(e.out_time)}</td>
+                        <td>${e.is_all_day ? 'Yes' : 'No'}</td>
+                        <td>${fmtOrDash(e.status)}</td>
+                        <td>${fmtOrDash(e.public_private)}</td>
+                        <td>${fmtOrDash(e.ticketed)}</td>
+                    </tr>
+                `).join('');
+                return `
+                    <details class="ebl-loc" data-loc="${escapeHtml(loc)}"${isOpen}>
+                      <summary>
+                        <span class="ebl-summary-main stat-label">${escapeHtml(loc)}</span>
+                        <span class="stat-value">${evs.length}</span>
+                      </summary>
+                      <table class="monitor-table ebl-table">
+                        <tr>
+                          <th>Event</th><th>In</th><th>Out</th><th>All-Day</th>
+                          <th>Status</th><th>P/P</th><th>Ticketed</th>
+                        </tr>
+                        ${rows}
+                      </table>
+                    </details>
+                `;
+            }).join('');
+
+            // Track open/close across refreshes
+            container.querySelectorAll('details.ebl-loc').forEach(el => {
+                el.addEventListener('toggle', () => {
+                    const loc = el.getAttribute('data-loc');
+                    if (el.open) _eblOpenLocs.add(loc);
+                    else _eblOpenLocs.delete(loc);
+                });
+            });
         }
 
         // =====================================================================
