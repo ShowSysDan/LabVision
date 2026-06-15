@@ -42,8 +42,8 @@ SECRET_KEY=your-secret-key-here
 DATABASE_URL=sqlite:///artsvision_monitors.db
 
 # ArtsVision API
-ARTSVISION_API_KEY=823264392764
-ARTSVISION_API_URL=https://av2.artsvision.net/api/getdata
+ARTSVISION_API_KEY=
+ARTSVISION_API_URL=
 
 # SSL Certificate Verification
 # Set to false if ArtsVision uses a self-signed certificate
