@@ -210,7 +210,7 @@
         }
 
         .status-badge.active {
-            animation: pulse 2s ease-in-out infinite;
+            animation: pulse var(--pulse-period, 2s) ease-in-out infinite;
         }
     </style>
 </head>
@@ -267,6 +267,42 @@
         let scrollEnabled = true;
         let activeLabel = 'IN USE';
         let inactiveLabel = 'AVAILABLE';
+
+        // =====================================================================
+        // Server Clock & Pulse Sync
+        // =====================================================================
+        // Displays run off the server's clock rather than the TV's own, so the
+        // header clock, countdowns and the "in use" pulse all agree across
+        // every TV even when the TVs' clocks disagree.
+
+        const PULSE_PERIOD_MS = 2000;
+        let serverClockOffset = 0;  // server time minus local time, in ms
+
+        async function syncServerClock() {
+            try {
+                const sent = Date.now();
+                const response = await fetch('/api/time', { cache: 'no-store' });
+                const received = Date.now();
+                const data = await response.json();
+                // Assume the server read its clock halfway through the round trip
+                serverClockOffset = data.epoch_ms - (sent + received) / 2;
+                alignPulse();
+            } catch (e) {
+                console.error('Error syncing server clock:', e);
+            }
+        }
+
+        function serverNow() {
+            return Date.now() + serverClockOffset;
+        }
+
+        function alignPulse() {
+            const badge = document.getElementById('statusBadge');
+            const phase = serverNow() % PULSE_PERIOD_MS;
+            // A negative delay starts the animation part-way through its cycle
+            badge.style.animationDelay = (-phase) + 'ms';
+            document.documentElement.style.setProperty('--pulse-period', PULSE_PERIOD_MS + 'ms');
+        }
 
         // =====================================================================
         // Theme Loading
@@ -384,6 +420,9 @@
 
             if (currentData.is_active && currentData.current_event) {
                 container.className = 'display-container active';
+                if (!statusBadge.classList.contains('active')) {
+                    alignPulse();
+                }
                 statusBadge.className = 'status-badge active';
                 statusBadge.textContent = activeLabel;
 
@@ -464,7 +503,7 @@
             if (!isoString) return '';
 
             const target = new Date(isoString);
-            const now = new Date();
+            const now = new Date(serverNow());
             const diff = target - now;
 
             if (diff < 0) return 'Now';
@@ -481,7 +520,7 @@
         }
 
         function updateClock() {
-            const now = new Date();
+            const now = new Date(serverNow());
             const time = now.toLocaleTimeString('en-US', {
                 hour: 'numeric',
                 minute: '2-digit',
@@ -497,18 +536,26 @@
             document.getElementById('clock').textContent = time + '  |  ' + date;
         }
 
+        // Tick on the server's second boundary so every TV flips together
+        function scheduleClockTick() {
+            updateClock();
+            setTimeout(scheduleClockTick, 1000 - (serverNow() % 1000) + 5);
+        }
+
         // =====================================================================
         // Initialize
         // =====================================================================
 
         document.addEventListener('DOMContentLoaded', async function() {
+            await syncServerClock();
             await loadTheme();
             initSocketIO();
-            updateClock();
-
-            setInterval(updateClock, 1000);
+            scheduleClockTick();
             setInterval(updateDisplay, 30000);
             setInterval(fetchDisplayData, 120000);
+
+            // Re-sync with the server clock periodically to correct drift
+            setInterval(syncServerClock, 600000);
 
             // Reload theme every 5 minutes in case it was changed
             setInterval(loadTheme, 300000);

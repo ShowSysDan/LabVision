@@ -185,6 +185,12 @@ def get_display_data(monitor_id):
     return jsonify(data)
 
 
+@app.route('/api/time')
+def get_server_time():
+    """Server epoch time in ms, so displays can share one clock (pulse sync)"""
+    return jsonify({'epoch_ms': int(time.time() * 1000)})
+
+
 @app.route('/settings/display-theme')
 def display_theme_editor():
     """Display theme editor page with live preview"""
