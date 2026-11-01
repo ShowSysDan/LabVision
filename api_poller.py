@@ -608,6 +608,13 @@ class ArtsVisionPoller:
             current_event = None
             next_events = []
 
+            # Walk every event in chronological order. Don't stop at the
+            # current event: later shows still need to be considered so the
+            # monitor can report the next one (e.g. a 7pm show while the 2pm
+            # show is still active). If windows overlap, the earliest event
+            # stays current.
+            location_events.sort(key=lambda e: e['in_time'])
+
             for event in location_events:
                 in_time = datetime.fromisoformat(event['in_time'])
 
@@ -620,15 +627,16 @@ class ArtsVisionPoller:
                     deactivation_time = in_time + timedelta(hours=4)
 
                 if activation_time <= current_time < deactivation_time:
-                    current_event = {
-                        'name': event['name'],
-                        'in_time': event['in_time'],
-                        'out_time': event['out_time'],
-                        'is_all_day': event.get('is_all_day', False),
-                        'activation_time': activation_time.isoformat(),
-                        'deactivation_time': deactivation_time.isoformat()
-                    }
-                    break
+                    if current_event is None:
+                        current_event = {
+                            'name': event['name'],
+                            'in_time': event['in_time'],
+                            'out_time': event['out_time'],
+                            'is_all_day': event.get('is_all_day', False),
+                            'activation_time': activation_time.isoformat(),
+                            'deactivation_time': deactivation_time.isoformat()
+                        }
+                    continue
 
                 if current_time < activation_time:
                     next_events.append({
